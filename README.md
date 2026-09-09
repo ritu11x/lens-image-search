@@ -107,20 +107,32 @@ Open `index.html` in a browser (the backend runs at `http://127.0.0.1:8000`).
 ## Project structure
 
 ```
-app.py                  FastAPI backend — search, upload, indexing, stats
-build_index.py           One-time / batch CLIP embedding generation
-generate_captions.py     BLIP caption generation for the dataset
-extract_keywords.py      Keyword extraction from captions
-hybrid_search.py         Standalone hybrid search logic (prototyping/testing)
-auto_eval.py             Automated precision evaluation
-index.html               Frontend (search UI, upload, stats, about)
-images/                  Image dataset (not committed — see .gitignore)
-thumbnails/              Generated thumbnails
-embeddings.npy           CLIP embeddings for indexed images
-filenames.npy            Filenames aligned with embeddings.npy
-captions.json            BLIP captions per image
-keywords.json            Extracted keywords per image
+app.py                  FastAPI backend — search, upload, indexing, stats (main entry point)
+build_index.py          One-time / batch CLIP embedding generation
+generate_captions.py    BLIP caption generation for the dataset
+extract_keywords.py     Keyword extraction from captions
+hybrid_search.py        Standalone hybrid search logic (used during development)
+auto_eval.py            Automated precision evaluation (generates the numbers below)
+index.html              Frontend (search UI, upload, stats, about)
+
+search.py               Early standalone brute-force search script (exploration)
+search_faiss.py         Early standalone FAISS search script (exploration)
+test_clip.py            Script used to verify CLIP model loading during development
+test_blip.py            Script used to verify BLIP model loading during development
+test_image_embedding.py Script used to verify image embedding generation during development
+create_eval_set.py      Interactive helper used to build the manual portion of the eval set
+compute_metrics.py      Precision/recall calculation from eval_set.json
+eval_set.json           Saved evaluation queries and candidate/relevant results
+
+images/                 Image dataset (not committed — see .gitignore)
+thumbnails/             Generated thumbnails (not committed)
+embeddings.npy          CLIP embeddings for indexed images (not committed)
+filenames.npy           Filenames aligned with embeddings.npy (not committed)
+captions.json           BLIP captions per image (not committed)
+keywords.json           Extracted keywords per image (not committed)
 ```
+
+The `search.py` / `search_faiss.py` / `test_*.py` scripts were used while building the system incrementally (verifying CLIP, then FAISS, then BLIP, one piece at a time) and are kept for reference — `app.py` is the actual served application and is the only file that needs to run.
 
 ## Known limitations
 
