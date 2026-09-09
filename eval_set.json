@@ -1,0 +1,181 @@
+{
+  "a red car": {
+    "candidates": [
+      "image-71.jpg",
+      "image-1.jpg",
+      "image-566.jpg",
+      "image-478.jpg",
+      "image-872.jpg",
+      "image-856.jpg",
+      "image-180.jpg",
+      "image-717.jpg",
+      "image-806.jpg",
+      "image-20.jpg"
+    ],
+    "relevant": [
+      "image-1.jpg"
+    ]
+  },
+  "a person by the water": {
+    "candidates": [
+      "image-936.jpg",
+      "image-965.jpg",
+      "image-989.jpg",
+      "image-982.jpg",
+      "image-540.jpg",
+      "image-351.jpg",
+      "image-521.jpg",
+      "image-930.jpg",
+      "image-328.jpg",
+      "image-608.jpg"
+    ],
+    "relevant": []
+  },
+  "food on a table": {
+    "candidates": [
+      "image-330.jpg",
+      "image-234.jpg",
+      "image-175.jpg",
+      "image-707.jpg",
+      "image-599.jpg",
+      "image-186.jpg",
+      "image-201.jpg",
+      "image-502.jpg",
+      "image-182.jpg",
+      "image-887.jpg"
+    ],
+    "relevant": [
+      "image-330.jpg",
+      "image-599.jpg"
+    ]
+  },
+  "a flower": {
+    "candidates": [
+      "image-61.jpg",
+      "image-31.jpg",
+      "image-538.jpg",
+      "image-807.jpg",
+      "image-115.jpg",
+      "image-16.jpg",
+      "image-542.jpg",
+      "image-77.jpg",
+      "image-467.jpg",
+      "image-368.jpg"
+    ],
+    "relevant": [
+      "image-61.jpg",
+      "image-31.jpg",
+      "image-538.jpg",
+      "image-807.jpg",
+      "image-115.jpg",
+      "image-16.jpg",
+      "image-77.jpg",
+      "image-467.jpg",
+      "image-368.jpg"
+    ]
+  },
+  "a dog": {
+    "candidates": [
+      "image-203.jpg",
+      "image-998.jpg",
+      "image-692.jpg",
+      "image-533.jpg",
+      "image-870.jpg",
+      "image-287.jpg",
+      "image-667.jpg",
+      "image-82.jpg",
+      "image-574.jpg",
+      "image-795.jpg"
+    ],
+    "relevant": [
+      "image-203.jpg",
+      "image-692.jpg",
+      "image-533.jpg",
+      "image-870.jpg",
+      "image-287.jpg",
+      "image-667.jpg",
+      "image-82.jpg",
+      "image-574.jpg",
+      "image-795.jpg"
+    ]
+  },
+  "a black and white photo": {
+    "candidates": [
+      "image-368.jpg",
+      "image-542.jpg",
+      "image-777.jpg",
+      "image-561.jpg",
+      "image-807.jpg",
+      "image-302.jpg",
+      "image-654.jpg",
+      "image-274.jpg",
+      "image-158.jpg",
+      "image-886.jpg"
+    ],
+    "relevant": [
+      "image-368.jpg",
+      "image-807.jpg",
+      "image-158.jpg"
+    ]
+  },
+  "a city street at night": {
+    "candidates": [
+      "image-395.jpg",
+      "image-943.jpg",
+      "image-485.jpg",
+      "image-326.jpg",
+      "image-262.jpg",
+      "image-107.jpg",
+      "image-332.jpg",
+      "image-930.jpg",
+      "image-539.jpg",
+      "image-907.jpg"
+    ],
+    "relevant": []
+  },
+  "mountains and nature": {
+    "candidates": [
+      "image-142.jpg",
+      "image-934.jpg",
+      "image-291.jpg",
+      "image-478.jpg",
+      "image-438.jpg",
+      "image-238.jpg",
+      "image-448.jpg",
+      "image-470.jpg",
+      "image-694.jpg",
+      "image-155.jpg"
+    ],
+    "relevant": []
+  },
+  "a person smiling": {
+    "candidates": [
+      "image-220.jpg",
+      "image-738.jpg",
+      "image-317.jpg",
+      "image-191.jpg",
+      "image-852.jpg",
+      "image-649.jpg",
+      "image-351.jpg",
+      "image-89.jpg",
+      "image-784.jpg",
+      "image-698.jpg"
+    ],
+    "relevant": []
+  },
+  "technology or electronics": {
+    "candidates": [
+      "image-638.jpg",
+      "image-943.jpg",
+      "image-961.jpg",
+      "image-383.jpg",
+      "image-176.jpg",
+      "image-922.jpg",
+      "image-612.jpg",
+      "image-683.jpg",
+      "image-361.jpg",
+      "image-858.jpg"
+    ],
+    "relevant": []
+  }
+}
