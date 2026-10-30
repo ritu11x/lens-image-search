@@ -17,30 +17,19 @@ from core.config import (
 
 logger = logging.getLogger("lens.models")
 
-def is_render_or_low_ram() -> bool:
-    """Checks if running on Render or low-memory (<1.5GB) container."""
-    if os.environ.get("RENDER") == "true" or os.environ.get("RENDER_SERVICE_ID"):
-        return True
-    try:
-        if os.path.exists("/sys/fs/cgroup/memory.max"):
-            with open("/sys/fs/cgroup/memory.max") as f:
-                val = f.read().strip()
-                if val.isdigit() and int(val) < 1500 * 1024 * 1024:
-                    return True
-        if os.path.exists("/sys/fs/cgroup/memory/memory.limit_in_bytes"):
-            with open("/sys/fs/cgroup/memory/memory.limit_in_bytes") as f:
-                val = f.read().strip()
-                if val.isdigit() and int(val) < 1500 * 1024 * 1024:
-                    return True
-    except Exception:
-        pass
-    try:
-        return psutil.virtual_memory().total < 1500 * 1024 * 1024
-    except Exception:
+def is_low_memory_env() -> bool:
+    """Safe-by-default for cloud hosts (Render 512MB). Only runs heavy transformers if HF Spaces (16GB) or explicitly opted in."""
+    # Hugging Face Spaces provides 16GB RAM
+    if os.environ.get("SPACE_ID") or os.environ.get("HF_SPACE"):
         return False
+    # Explicit opt-in for local machines or dedicated high-RAM servers
+    if os.environ.get("FULL_AI_MODELS", "").lower() == "true":
+        return False
+    # Always use lightweight manifold projection on Render and standard cloud hosts
+    return True
 
-IS_LOW_MEMORY_ENV = is_render_or_low_ram()
-logger.info(f"Environment low-memory mode: {IS_LOW_MEMORY_ENV} (Render: {bool(os.environ.get('RENDER'))})")
+IS_LOW_MEMORY_ENV = is_low_memory_env()
+logger.info(f"Low-memory manifold mode active: {IS_LOW_MEMORY_ENV}")
 
 
 class ModelManager:

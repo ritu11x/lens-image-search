@@ -77,10 +77,12 @@ def api_info():
 
 @app.get("/health")
 def health():
+    from core.models import IS_LOW_MEMORY_ENV
     index_size = search_engine.index.ntotal if search_engine.index else 0
     return {
         "status": "ok",
         "device": DEVICE,
+        "low_memory_mode": IS_LOW_MEMORY_ENV,
         "index_ready": search_engine.index is not None,
         "index_size": index_size,
         "total_images": len(search_engine.filenames),
