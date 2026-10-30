@@ -49,12 +49,27 @@ app.mount("/images", StaticFiles(directory=str(IMAGES_DIR)), name="images")
 app.mount("/thumbnails", StaticFiles(directory=str(THUMBNAILS_DIR)), name="thumbnails")
 
 
-from fastapi.responses import JSONResponse, FileResponse
+@app.middleware("http")
+async def add_no_cache_headers(request, call_next):
+    response = await call_next(request)
+    if "text/html" in response.headers.get("content-type", "") or request.url.path == "/":
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
+
 
 @app.get("/")
 def home():
     if os.path.exists("index.html"):
-        return FileResponse("index.html")
+        return FileResponse(
+            "index.html",
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+                "Pragma": "no-cache",
+                "Expires": "0"
+            }
+        )
     return {
         "name": "Lens Image Search API",
         "version": "2.0.0",
