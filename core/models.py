@@ -4,7 +4,6 @@ import json
 import re
 import hashlib
 import logging
-import psutil
 from typing import List, Union
 from PIL import Image
 import torch
