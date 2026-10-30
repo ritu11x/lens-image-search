@@ -1,5 +1,8 @@
 import os
 import gc
+import json
+import re
+import hashlib
 import logging
 import psutil
 from typing import List, Union
@@ -7,19 +10,37 @@ from PIL import Image
 import torch
 import numpy as np
 
-from core.config import CLIP_MODEL_NAME, BLIP_MODEL_NAME, DEVICE
+from core.config import (
+    CLIP_MODEL_NAME, BLIP_MODEL_NAME, DEVICE,
+    EMBEDDINGS_FILE, FILENAMES_FILE, KEYWORDS_FILE, CAPTIONS_FILE
+)
 
 logger = logging.getLogger("lens.models")
 
-# Detect low-memory environment (e.g., Render free tier has <= 512MB RAM)
-def get_total_ram_mb() -> float:
+def is_render_or_low_ram() -> bool:
+    """Checks if running on Render or low-memory (<1.5GB) container."""
+    if os.environ.get("RENDER") == "true" or os.environ.get("RENDER_SERVICE_ID"):
+        return True
     try:
-        return psutil.virtual_memory().total / (1024 * 1024)
+        if os.path.exists("/sys/fs/cgroup/memory.max"):
+            with open("/sys/fs/cgroup/memory.max") as f:
+                val = f.read().strip()
+                if val.isdigit() and int(val) < 1500 * 1024 * 1024:
+                    return True
+        if os.path.exists("/sys/fs/cgroup/memory/memory.limit_in_bytes"):
+            with open("/sys/fs/cgroup/memory/memory.limit_in_bytes") as f:
+                val = f.read().strip()
+                if val.isdigit() and int(val) < 1500 * 1024 * 1024:
+                    return True
     except Exception:
-        return 16000.0
+        pass
+    try:
+        return psutil.virtual_memory().total < 1500 * 1024 * 1024
+    except Exception:
+        return False
 
-IS_LOW_MEMORY_ENV = get_total_ram_mb() < 1200.0
-logger.info(f"System RAM: {get_total_ram_mb():.1f} MB | Low-memory mode: {IS_LOW_MEMORY_ENV}")
+IS_LOW_MEMORY_ENV = is_render_or_low_ram()
+logger.info(f"Environment low-memory mode: {IS_LOW_MEMORY_ENV} (Render: {bool(os.environ.get('RENDER'))})")
 
 
 class ModelManager:
@@ -45,6 +66,8 @@ class ModelManager:
 
     def load_clip_text_only(self):
         """Loads lightweight text encoder to prevent OOM on memory-limited servers."""
+        if IS_LOW_MEMORY_ENV:
+            return None, None
         if self.clip_text_model is None:
             try:
                 from transformers import CLIPTokenizerFast, CLIPTextModelWithProjection
@@ -65,10 +88,9 @@ class ModelManager:
 
     def load_clip(self):
         """Full CLIP model for environments with sufficient RAM (>= 1.5GB)."""
+        if IS_LOW_MEMORY_ENV:
+            return None, None
         if self.clip_model is None:
-            if IS_LOW_MEMORY_ENV:
-                logger.info("Low-RAM environment detected (<1.2GB). Using lightweight text projection.")
-                return None, None
             try:
                 from transformers import CLIPProcessor, CLIPModel
                 logger.info(f"Loading full CLIP model '{CLIP_MODEL_NAME}' on {self.device}...")
@@ -77,7 +99,7 @@ class ModelManager:
                 self.clip_model.eval()
                 logger.info("Full CLIP loaded successfully.")
             except Exception as e:
-                logger.warning(f"Full CLIP loading skipped (insufficient RAM): {e}")
+                logger.warning(f"Full CLIP loading skipped: {e}")
                 self.clip_model = None
                 self.clip_processor = None
         return self.clip_model, self.clip_processor
@@ -85,9 +107,7 @@ class ModelManager:
     def load_blip(self):
         """BLIP is ~980MB RAM. Never attempt loading in <= 1GB environments to prevent OS OOM kill."""
         if IS_LOW_MEMORY_ENV:
-            logger.info("Skipping BLIP model loading on low-memory instance (<1.2GB RAM).")
             return None, None
-
         if self.blip_model is None:
             try:
                 from transformers import BlipProcessor, BlipForConditionalGeneration
@@ -102,9 +122,53 @@ class ModelManager:
                 self.blip_processor = None
         return self.blip_model, self.blip_processor
 
+    def _get_keyword_projected_embedding(self, text: str) -> torch.Tensor:
+        """Projects queries onto pre-computed CLIP embedding manifold using keyword/caption co-occurrence with 0 MB RAM overhead."""
+        try:
+            tokens = set(re.findall(r'\b[a-z]+\b', text.lower()))
+            from core.search_engine import STOPWORDS, SYNONYMS
+            meaningful = [t for t in tokens if t not in STOPWORDS and len(t) > 2]
+            
+            expanded = set(meaningful)
+            for t in meaningful:
+                if t in SYNONYMS:
+                    expanded.update(SYNONYMS[t])
+
+            if EMBEDDINGS_FILE.exists() and FILENAMES_FILE.exists() and KEYWORDS_FILE.exists():
+                embs = np.load(str(EMBEDDINGS_FILE), allow_pickle=True)
+                fnames = np.load(str(FILENAMES_FILE), allow_pickle=True)
+                with open(KEYWORDS_FILE, "r", encoding="utf-8") as f:
+                    keywords_map = json.load(f)
+
+                matched_indices = []
+                for idx, fname in enumerate(fnames):
+                    kws = set(keywords_map.get(str(fname), []))
+                    if expanded & kws:
+                        matched_indices.append(idx)
+
+                if matched_indices:
+                    matched_embs = embs[matched_indices]
+                    avg_vec = np.mean(matched_embs, axis=0, keepdims=True)
+                    norm = np.linalg.norm(avg_vec)
+                    if norm > 0:
+                        avg_vec = avg_vec / norm
+                    return torch.from_numpy(avg_vec.astype('float32'))
+        except Exception as e:
+            logger.warning(f"Keyword projection fallback failed: {e}")
+
+        # Deterministic pseudo-embedding
+        seed = int(hashlib.md5(text.encode('utf-8')).hexdigest()[:8], 16)
+        rng = np.random.RandomState(seed)
+        vec = rng.randn(1, 512).astype('float32')
+        vec = vec / np.linalg.norm(vec, axis=-1, keepdims=True)
+        return torch.from_numpy(vec)
+
     def get_text_embedding(self, text: str) -> torch.Tensor:
         """Returns 512-dim normalized embedding for text."""
-        # Method 1: Lightweight text projection (~120MB)
+        if IS_LOW_MEMORY_ENV:
+            return self._get_keyword_projected_embedding(text)
+
+        # Full environment (local / HF Spaces)
         try:
             model, tok = self.load_clip_text_only()
             if model is not None and tok is not None:
@@ -115,50 +179,28 @@ class ModelManager:
                     embeds = embeds / embeds.norm(p=2, dim=-1, keepdim=True)
                 return embeds.cpu()
         except Exception as e:
-            logger.warning(f"CLIP text projection failed: {e}")
+            logger.warning(f"CLIP text encoder failed: {e}")
 
-        # Method 2: Full CLIP fallback if available
-        try:
-            clip_m, clip_p = self.load_clip()
-            if clip_m is not None and clip_p is not None:
-                inputs = clip_p(text=[text], return_tensors="pt", padding=True).to(self.device)
-                with torch.inference_mode():
-                    features = clip_m.get_text_features(**inputs)
-                if not isinstance(features, torch.Tensor):
-                    features = features.pooler_output if hasattr(features, 'pooler_output') else features[0]
-                features = features / features.norm(p=2, dim=-1, keepdim=True)
-                return features.cpu()
-        except Exception as e:
-            logger.warning(f"Full CLIP text features failed: {e}")
-
-        # Method 3: Deterministic pseudo-embedding fallback (zero crash guarantee)
-        logger.info("Using deterministic pseudo-embedding fallback.")
-        import hashlib
-        seed = int(hashlib.md5(text.encode('utf-8')).hexdigest()[:8], 16)
-        rng = np.random.RandomState(seed)
-        vec = rng.randn(1, 512).astype('float32')
-        vec = vec / np.linalg.norm(vec, axis=-1, keepdims=True)
-        return torch.from_numpy(vec)
+        return self._get_keyword_projected_embedding(text)
 
     def get_image_embeddings(self, images: List[Image.Image]) -> torch.Tensor:
-        """Computes CLIP image embeddings if RAM allows, or returns graceful zero vectors."""
-        try:
-            clip_m, clip_p = self.load_clip()
-            if clip_m is not None and clip_p is not None:
-                inputs = clip_p(images=images, return_tensors="pt", padding=True).to(self.device)
-                with torch.inference_mode():
-                    features = clip_m.get_image_features(**inputs)
-                if not isinstance(features, torch.Tensor):
-                    features = features.pooler_output if hasattr(features, 'pooler_output') else features[0]
-                features = features / features.norm(p=2, dim=-1, keepdim=True)
-                return features.cpu()
-        except Exception as e:
-            logger.warning(f"Image embedding failed: {e}")
+        """Computes CLIP image embeddings if RAM allows, or returns graceful content hash vectors."""
+        if not IS_LOW_MEMORY_ENV:
+            try:
+                clip_m, clip_p = self.load_clip()
+                if clip_m is not None and clip_p is not None:
+                    inputs = clip_p(images=images, return_tensors="pt", padding=True).to(self.device)
+                    with torch.inference_mode():
+                        features = clip_m.get_image_features(**inputs)
+                    if not isinstance(features, torch.Tensor):
+                        features = features.pooler_output if hasattr(features, 'pooler_output') else features[0]
+                    features = features / features.norm(p=2, dim=-1, keepdim=True)
+                    return features.cpu()
+            except Exception as e:
+                logger.warning(f"Image embedding failed: {e}")
 
-        # Safe fallback: normalized pseudo-embeddings from image content hash
         results = []
         for img in images:
-            import hashlib
             thumb = img.resize((32, 32)).convert("L")
             raw_bytes = bytes(thumb.tobytes())
             seed = int(hashlib.md5(raw_bytes).hexdigest()[:8], 16)
@@ -195,4 +237,5 @@ class ModelManager:
 
 
 model_manager = ModelManager()
+
 
