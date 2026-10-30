@@ -118,8 +118,8 @@ class Indexer:
                         thumb_path = THUMBNAILS_DIR / fname
                         self.generate_thumbnail(img, thumb_path)
 
-                        # BLIP Caption & Keywords
-                        caption = model_manager.generate_caption(img)
+                        # BLIP Caption & Keywords (with smart filename fallback on low-memory)
+                        caption = model_manager.generate_caption(img, filename=fname)
                         kws = self.extract_keywords_from_caption(caption)
                         existing_captions[fname] = caption
                         existing_keywords[fname] = kws
