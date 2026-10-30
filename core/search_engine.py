@@ -107,8 +107,9 @@ class SearchEngine:
             if EMBEDDINGS_FILE.exists() and FILENAMES_FILE.exists():
                 try:
                     self.embeddings = np.load(str(EMBEDDINGS_FILE)).astype('float32')
-                    self.filenames = np.load(str(FILENAMES_FILE))
-                except Exception:
+                    self.filenames = np.load(str(FILENAMES_FILE), allow_pickle=True)
+                except Exception as e:
+                    logger.error(f"Error loading embeddings or filenames: {e}")
                     self.embeddings = np.empty((0, EMBEDDING_DIM), dtype='float32')
                     self.filenames = np.empty((0,), dtype=str)
             else:
