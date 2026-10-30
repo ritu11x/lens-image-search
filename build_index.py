@@ -7,7 +7,7 @@ import numpy as np
 print("Model load ho raha hai...")
 model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
 processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
-print("Model load ho gaya! ✅")
+print("Model load ho gaya! [OK]")
 
 image_folder = "images"
 image_files = sorted(os.listdir(image_folder))  # sorted taaki order consistent rahe
@@ -39,5 +39,5 @@ all_embeddings = np.array(all_embeddings)
 np.save("embeddings.npy", all_embeddings)
 np.save("filenames.npy", np.array(image_files))
 
-print("\n✅ Sab embeddings save ho gaye!")
+print("\n[OK] Sab embeddings save ho gaye!")
 print("Shape:", all_embeddings.shape)  # expect: (5, 512) - 5 images, 512 numbers each

@@ -26,7 +26,7 @@ for filename, caption in captions.items():
 with open("keywords.json", "w") as f:
     json.dump(keywords, f, indent=2)
 
-print(f"✅ Keywords extract ho gaye! Total images: {len(keywords)}")
+print(f"[OK] Keywords extract ho gaye! Total images: {len(keywords)}")
 
 # Sample check - pehli 3 images ke keywords dikha
 for filename in list(keywords.keys())[:3]:

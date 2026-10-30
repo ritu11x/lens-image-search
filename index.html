@@ -1,922 +1,2135 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Lens — Hybrid Image Search</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #0B1F26;
-    --surface: #13282F;
-    --surface-raised: #17313A;
-    --border: rgba(232, 163, 61, 0.14);
-    --border-strong: rgba(232, 163, 61, 0.32);
-    --gold: #E8A33D;
-    --gold-dim: #B8843A;
-    --coral: #E2694B;
-    --sage: #7FA98B;
-    --text: #F0EDE6;
-    --text-muted: #8FA3A8;
-    --text-faint: #5C7278;
-  }
-
-  [data-theme="light"] {
-    --bg: #F5F1EA;
-    --surface: #FFFFFF;
-    --surface-raised: #EFE9DE;
-    --border: rgba(184, 132, 58, 0.2);
-    --border-strong: rgba(184, 132, 58, 0.4);
-    --text: #1C1C1C;
-    --text-muted: #5C5952;
-    --text-faint: #8A867C;
-  }
-
-  * { box-sizing: border-box; }
-
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Inter', sans-serif;
-    line-height: 1.5;
-  }
-
-  .wrap {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 24px 32px 96px;
-  }
-
-  .navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-bottom: 18px;
-    margin-bottom: 24px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .brand {
-    font-family: 'Fraunces', serif;
-    font-size: 17px;
-    color: var(--text);
-  }
-
-  .brand em { color: var(--gold); font-style: italic; }
-
-  .nav-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-
-  .nav-link {
-    background: none;
-    border: none;
-    padding: 6px 10px;
-    font-family: 'Inter', sans-serif;
-    font-size: 12.5px;
-    font-weight: 500;
-    color: var(--text-faint);
-    cursor: pointer;
-  }
-
-  .nav-link:hover { color: var(--gold); }
-
-  .theme-toggle {
-    background: none;
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    padding: 6px 12px;
-    font-size: 12.5px;
-    color: var(--text-faint);
-    cursor: pointer;
-  }
-
-  header { margin-bottom: 48px; }
-
-  .eyebrow {
-    font-size: 13px;
-    color: var(--gold-dim);
-    letter-spacing: 0.02em;
-    margin: 0 0 12px;
-  }
-
-  h1 {
-    font-family: 'Fraunces', serif;
-    font-weight: 500;
-    font-size: 44px;
-    line-height: 1.08;
-    letter-spacing: -0.01em;
-    margin: 0 0 14px;
-    max-width: 600px;
-  }
-
-  h1 em { font-style: italic; color: var(--gold); }
-
-  .sub {
-    color: var(--text-muted);
-    font-size: 15px;
-    max-width: 520px;
-    margin: 0;
-  }
-
-  .mode-tabs {
-    display: flex;
-    gap: 4px;
-    margin: 40px 0 0;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 4px;
-    width: fit-content;
-  }
-
-  .mode-tab {
-    background: none;
-    border: none;
-    padding: 9px 20px;
-    font-family: 'Inter', sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-faint);
-    cursor: pointer;
-    border-radius: 7px;
-  }
-
-  .mode-tab.active {
-    background: var(--gold);
-    color: #16232A;
-  }
-
-  .search-panel {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 20px;
-    margin: 12px 0 8px;
-  }
-
-  .search-row { display: flex; gap: 10px; }
-
-  .search-row input[type="text"] {
-    flex: 1;
-    background: var(--surface-raised);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 13px 16px;
-    font-family: 'Inter', sans-serif;
-    font-size: 15px;
-    color: var(--text);
-    outline: none;
-  }
-
-  .search-row input[type="text"]:focus { border-color: var(--border-strong); }
-  .search-row input[type="text"]::placeholder { color: var(--text-faint); }
-
-  .search-row button.primary {
-    background: var(--gold);
-    border: none;
-    border-radius: 8px;
-    padding: 0 26px;
-    font-family: 'Inter', sans-serif;
-    font-weight: 600;
-    font-size: 14px;
-    color: #16232A;
-    cursor: pointer;
-  }
-
-  .search-row button.primary:hover { background: #F0AE4F; }
-  .search-row button.primary:active { transform: scale(0.98); }
-  .search-row button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
-
-  .upload-btn {
-    background: var(--surface-raised);
-    border: 1.5px solid var(--border-strong);
-    border-radius: 8px;
-    padding: 0 22px;
-    height: 46px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    color: var(--gold);
-    font-family: 'Inter', sans-serif;
-    font-weight: 600;
-    font-size: 14px;
-  }
-
-  .upload-btn:hover { background: #1C3B45; border-color: var(--gold); }
-  .upload-btn svg { width: 16px; height: 16px; }
-
-  .preview-panel {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: var(--surface-raised);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 16px;
-    color: var(--text-faint);
-    font-size: 13px;
-    min-height: 46px;
-  }
-
-  .preview-panel img {
-    width: 32px;
-    height: 32px;
-    object-fit: cover;
-    border-radius: 5px;
-    display: none;
-  }
-
-  .preview-panel.has-image img { display: block; }
-  .preview-panel.has-image { color: var(--text-muted); }
-
-  .advanced-toggle {
-    background: none;
-    border: none;
-    color: var(--text-faint);
-    font-size: 13px;
-    font-family: 'Inter', sans-serif;
-    cursor: pointer;
-    padding: 12px 2px 0;
-  }
-
-  .advanced-toggle:hover { color: var(--text-muted); }
-
-  .advanced {
-    display: none;
-    flex-wrap: wrap;
-    gap: 24px;
-    padding-top: 16px;
-    margin-top: 14px;
-    border-top: 1px solid var(--border);
-  }
-
-  .advanced.open { display: flex; }
-
-  .control { flex: 1; min-width: 180px; }
-
-  .control label {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-bottom: 8px;
-  }
-
-  .control label span:last-child { color: var(--gold); font-family: 'Inter', sans-serif; }
-
-  input[type="range"] { width: 100%; accent-color: var(--gold); }
-
-  .number-input {
-    width: 100%;
-    background: var(--surface-raised);
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    padding: 9px 12px;
-    font-family: 'Inter', sans-serif;
-    font-size: 14px;
-    color: var(--text);
-    outline: none;
-  }
-
-  .number-input:focus { border-color: var(--border-strong); }
-
-  .weight-hint {
-    font-size: 11px;
-    color: var(--text-faint);
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px dashed var(--border);
-    flex-basis: 100%;
-  }
-
-  .nav-status-row {
-    min-height: 18px;
-    margin: 16px 0 0;
-    font-size: 12.5px;
-    color: var(--gold-dim);
-  }
-
-     .status-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin: 18px 0 18px;
-    min-height: 20px;
-  }
-
-
-  .status-text { font-size: 13px; color: var(--text-faint); }
-  .status-text b { color: var(--text-muted); font-weight: 500; }
-
-  .results {
-    columns: 3 260px;
-    column-gap: 14px;
-  }
-
-  .card {
-    break-inside: avoid;
-    margin-bottom: 14px;
-    border-radius: 10px;
-    overflow: hidden;
-    background: var(--surface);
-    border: 1px solid var(--border);
-  }
-
-  .card.top-match { border-color: var(--border-strong); }
-
-  .card img.result-img { width: 100%; display: block; }
-
-  .card-body { padding: 12px; }
-
-  .filename {
-    font-size: 11px;
-    color: var(--text-faint);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    margin-bottom: 6px;
-  }
-
-  .caption {
-    font-size: 13px;
-    color: var(--text);
-    line-height: 1.45;
-    margin-bottom: 10px;
-  }
-
-  .keywords {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    margin-bottom: 10px;
-  }
-
-  .keyword-tag {
-    font-size: 10.5px;
-    padding: 2px 8px;
-    border-radius: 20px;
-    background: var(--surface-raised);
-    color: var(--text-muted);
-    border: 1px solid var(--border);
-  }
-
-  .keyword-tag.matched {
-    color: var(--gold);
-    border-color: var(--border-strong);
-    background: rgba(232, 163, 61, 0.1);
-  }
-
-  .score-breakdown {
-    display: flex;
-    justify-content: space-between;
-    font-size: 10.5px;
-    color: var(--text-faint);
-    padding-top: 8px;
-    border-top: 1px solid var(--border);
-  }
-
-  .score-breakdown b { color: var(--gold); font-weight: 600; }
-
-  .empty {
-    text-align: center;
-    color: var(--text-faint);
-    font-size: 14px;
-    padding: 60px 0;
-  }
-
-  .note {
-    margin-top: 56px;
-    padding-top: 20px;
-    border-top: 1px solid var(--border);
-    font-size: 12px;
-    color: var(--text-faint);
-    line-height: 1.6;
-  }
-
-  .about-hero { margin-bottom: 40px; }
-
-  .about-block {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 28px;
-    margin-bottom: 20px;
-  }
-
-  .about-block-title {
-    font-size: 11.5px;
-    color: var(--gold-dim);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin: 0 0 16px;
-    padding-left: 12px;
-    border-left: 2px solid var(--gold);
-  }
-
-  .about-lead {
-    font-size: 14px;
-    color: var(--text-muted);
-    line-height: 1.75;
-    margin: 0;
-    max-width: 720px;
-  }
-
-  .about-two-col {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-  }
-
-  .tech-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 10px;
-  }
-
-  .tech-card {
-    background: var(--surface-raised);
-    border: 1px solid var(--border);
-    border-radius: 9px;
-    padding: 13px 15px;
-  }
-
-  .tech-card .name {
-    font-size: 13.5px;
-    font-weight: 600;
-    color: var(--text);
-    margin-bottom: 3px;
-  }
-
-  .tech-card .role {
-    font-size: 11.5px;
-    color: var(--text-faint);
-  }
-
-  .feature-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-    gap: 10px;
-  }
-
-  .feature-card {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    background: var(--surface-raised);
-    border: 1px solid var(--border);
-    border-radius: 9px;
-    padding: 12px 14px;
-    font-size: 12.5px;
-    color: var(--text-muted);
-    line-height: 1.5;
-  }
-
-  .feature-card .dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--gold);
-    margin-top: 6px;
-    flex-shrink: 0;
-  }
-
-  .back-btn {
-    background: none;
-    border: 1.5px solid var(--border-strong);
-    border-radius: 8px;
-    padding: 10px 20px;
-    font-family: 'Inter', sans-serif;
-    font-weight: 600;
-    font-size: 13px;
-    color: var(--gold);
-    cursor: pointer;
-    margin-top: 28px;
-  }
-
-  .back-btn:hover { background: var(--surface-raised); }
-
-  .kw-chip {
-    font-size: 11px;
-    padding: 3px 9px;
-    border-radius: 20px;
-    background: var(--surface-raised);
-    border: 1px solid var(--border);
-    color: var(--text-muted);
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lens — Hybrid Semantic Image Search</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400;1,9..144,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0A0F14;
+      --bg-gradient: radial-gradient(circle at 50% 0%, #16242D 0%, #0A0F14 75%);
+      --surface: rgba(19, 34, 42, 0.75);
+      --surface-card: rgba(22, 40, 50, 0.85);
+      --surface-card-hover: rgba(28, 52, 65, 0.95);
+      --surface-raised: #1A313C;
+      --border: rgba(232, 163, 61, 0.16);
+      --border-strong: rgba(232, 163, 61, 0.38);
+      --accent: #E8A33D;
+      --accent-glow: rgba(232, 163, 61, 0.25);
+      --accent-hover: #F2B04E;
+      --cyan: #38BDF8;
+      --emerald: #34D399;
+      --text: #F3F4F6;
+      --text-muted: #94A3B8;
+      --text-faint: #64748B;
+      --glass-blur: blur(14px);
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+      --shadow-glow: 0 0 25px rgba(232, 163, 61, 0.2);
+    }
+
+    [data-theme="light"] {
+      --bg: #F8FAFC;
+      --bg-gradient: radial-gradient(circle at 50% 0%, #EDF2F7 0%, #F8FAFC 75%);
+      --surface: rgba(255, 255, 255, 0.85);
+      --surface-card: rgba(255, 255, 255, 0.95);
+      --surface-card-hover: #FFFFFF;
+      --surface-raised: #EDF2F7;
+      --border: rgba(180, 130, 50, 0.18);
+      --border-strong: rgba(180, 130, 50, 0.4);
+      --accent: #D98E28;
+      --accent-glow: rgba(217, 142, 40, 0.18);
+      --accent-hover: #C57E1E;
+      --cyan: #0284C7;
+      --emerald: #059669;
+      --text: #0F172A;
+      --text-muted: #475569;
+      --text-faint: #94A3B8;
+      --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
+      --shadow-glow: 0 0 25px rgba(217, 142, 40, 0.15);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      background-image: var(--bg-gradient);
+      background-attachment: fixed;
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px 28px 100px;
+    }
+
+    /* Header Nav */
+    header.site-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      margin-bottom: 36px;
+      background: var(--surface);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-card);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, var(--accent), #e2694b);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+
+    .brand-icon svg { width: 18px; height: 18px; fill: none; stroke: #fff; stroke-width: 2.2; }
+
+    .brand-title {
+      font-family: 'Fraunces', serif;
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+
+    .brand-title em {
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    .badge-hybrid {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 3px 8px;
+      border-radius: 20px;
+      background: rgba(232, 163, 61, 0.12);
+      color: var(--accent);
+      border: 1px solid var(--border);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-nav {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 13.5px;
+      font-weight: 500;
+      padding: 7px 14px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-nav:hover {
+      color: var(--text);
+      background: var(--surface-raised);
+      border-color: var(--border);
+    }
+
+    .btn-theme {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--surface-raised);
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .btn-theme:hover {
+      border-color: var(--accent);
+      transform: rotate(15deg);
+    }
+
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      max-width: 760px;
+      margin: 0 auto 36px;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      background: rgba(232, 163, 61, 0.08);
+      border: 1px solid var(--border);
+      padding: 4px 12px;
+      border-radius: 30px;
+      margin-bottom: 16px;
+    }
+
+    .hero-eyebrow .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--emerald);
+      box-shadow: 0 0 8px var(--emerald);
+    }
+
+    .hero-title {
+      font-family: 'Fraunces', serif;
+      font-size: 46px;
+      line-height: 1.15;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+    }
+
+    .hero-title em {
+      color: var(--accent);
+      font-style: italic;
+    }
+
+    .hero-sub {
+      font-size: 16px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Search Box & Controls */
+    .search-card {
+      background: var(--surface);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow-card);
+      margin-bottom: 24px;
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .search-card:focus-within {
+      border-color: var(--border-strong);
+      box-shadow: var(--shadow-card), var(--shadow-glow);
+    }
+
+    .mode-switch {
+      display: inline-flex;
+      background: var(--surface-raised);
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      margin-bottom: 18px;
+    }
+
+    .mode-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 13.5px;
+      font-weight: 600;
+      padding: 8px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 0.2s ease;
+    }
+
+    .mode-btn.active {
+      background: var(--accent);
+      color: #0A0F14;
+      box-shadow: 0 2px 8px var(--accent-glow);
+    }
+
+    .search-input-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+    }
+
+    .search-input-wrapper {
+      position: relative;
+      flex: 1;
+    }
+
+    .search-input-wrapper svg {
+      position: absolute;
+      left: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 20px;
+      stroke: var(--text-faint);
+    }
+
+    .search-input {
+      width: 100%;
+      background: var(--surface-raised);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px 16px 50px;
+      font-family: inherit;
+      font-size: 16px;
+      color: var(--text);
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .search-input:focus {
+      border-color: var(--accent);
+      background: rgba(232, 163, 61, 0.04);
+    }
+
+    /* Aesthetic Stepper Counter */
+    .stepper-counter {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--surface-raised);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 6px 8px;
+      height: 52px;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .stepper-counter:hover {
+      border-color: var(--border-strong);
+    }
+
+    .stepper-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(232, 163, 61, 0.08);
+      color: var(--accent);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+
+    .stepper-btn:hover {
+      background: var(--accent);
+      color: #0A0F14;
+      border-color: var(--accent);
+      transform: scale(1.06);
+    }
+
+    .stepper-btn:active {
+      transform: scale(0.92);
+    }
+
+    .stepper-value {
+      min-width: 30px;
+      text-align: center;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      font-family: inherit;
+      padding: 0 4px;
+      letter-spacing: -0.02em;
+    }
+
+    .btn-search {
+      background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+      border: none;
+      border-radius: 12px;
+      padding: 16px 28px;
+      color: #0A0F14;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 14px var(--accent-glow);
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .btn-search:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px var(--accent-glow);
+    }
+
+    .btn-search:active {
+      transform: translateY(1px);
+    }
+
+    /* Negative Filter & Exclusion Row */
+    .negative-filter-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 12px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .negative-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(239, 68, 68, 0.05);
+      border: 1px dashed rgba(239, 68, 68, 0.35);
+      border-radius: 10px;
+      padding: 7px 12px;
+      flex: 1;
+      max-width: 520px;
+      transition: all 0.2s ease;
+    }
+
+    .negative-input-wrap:focus-within {
+      border-color: #EF4444;
+      background: rgba(239, 68, 68, 0.09);
+    }
+
+    .negative-tag-badge {
+      font-size: 11px;
+      font-weight: 700;
+      color: #F87171;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .negative-input {
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13.5px;
+      outline: none;
+      width: 100%;
+    }
+
+    .negative-input::placeholder {
+      color: var(--text-faint);
+    }
+
+    .btn-clear-neg {
+      background: transparent;
+      border: none;
+      color: var(--text-faint);
+      cursor: pointer;
+      font-size: 13px;
+      padding: 2px 4px;
+    }
+
+    .btn-clear-neg:hover { color: #EF4444; }
+
+    .negative-hint {
+      font-size: 12px;
+      color: var(--text-faint);
+    }
+
+    .negative-hint code {
+      color: var(--accent);
+      background: var(--surface-raised);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+
+    /* Composed Search Refinement */
+    .composed-refinement-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(56, 189, 248, 0.07);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 10px;
+      padding: 8px 14px;
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .composed-icon {
+      font-size: 14px;
+    }
+
+    .composed-input {
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13.5px;
+      outline: none;
+      width: 100%;
+    }
+
+    .composed-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .modal-composed-box {
+      background: rgba(56, 189, 248, 0.06);
+      border: 1px solid rgba(56, 189, 248, 0.28);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 18px;
+    }
+
+    /* Reverse Image Search Dropzone */
+    .dropzone {
+      border: 2px dashed var(--border-strong);
+      border-radius: 12px;
+      padding: 32px 20px;
+      text-align: center;
+      background: rgba(232, 163, 61, 0.03);
+      cursor: pointer;
+      transition: all 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--accent);
+      background: rgba(232, 163, 61, 0.08);
+      transform: scale(0.995);
+    }
+
+    .dropzone-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--surface-raised);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+    }
+
+    .dropzone-icon svg { width: 24px; height: 24px; }
+
+    .dropzone-text {
+      font-size: 14.5px;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .dropzone-sub {
+      font-size: 12.5px;
+      color: var(--text-muted);
+    }
+
+    .preview-strip {
+      display: none;
+      align-items: center;
+      gap: 14px;
+      background: var(--surface-raised);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 18px;
+      margin-top: 14px;
+    }
+
+    .preview-strip.active { display: flex; }
+
+    .preview-thumb {
+      width: 46px;
+      height: 46px;
+      border-radius: 8px;
+      object-fit: cover;
+      border: 1px solid var(--border);
+    }
+
+    .preview-meta {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .preview-name {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .preview-size {
+      font-size: 11.5px;
+      color: var(--text-muted);
+    }
+
+    .btn-remove-preview {
+      background: transparent;
+      border: none;
+      color: var(--text-faint);
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 6px;
+    }
+
+    .btn-remove-preview:hover { color: #EF4444; background: rgba(239, 68, 68, 0.1); }
+
+    /* Preset Explore Chips */
+    .explore-chips {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .explore-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-faint);
+      margin-right: 4px;
+    }
+
+    .chip {
+      background: var(--surface-raised);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .chip:hover {
+      color: var(--accent);
+      border-color: var(--border-strong);
+      background: rgba(232, 163, 61, 0.08);
+      transform: translateY(-1px);
+    }
+
+    /* Tuning Drawer */
+    .tuning-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px dashed var(--border);
+    }
+
+    .tuning-toggle:hover { color: var(--text); }
+
+    .tuning-toggle svg {
+      transition: transform 0.2s ease;
+    }
+
+    .tuning-toggle.open svg {
+      transform: rotate(180deg);
+    }
+
+    .tuning-panel {
+      display: none;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      padding-top: 18px;
+    }
+
+    .tuning-panel.open { display: grid; }
+
+    .control-item {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .control-label span:last-child {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .tuning-formula-hint {
+      grid-column: 1 / -1;
+      font-size: 11.5px;
+      color: var(--text-faint);
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      line-height: 1.5;
+    }
+
+    .tuning-formula-hint code {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* Status Bar */
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 22px 0 16px;
+      min-height: 24px;
+    }
+
+    .results-summary {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .results-summary b {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .telemetry-tag {
+      font-size: 12px;
+      color: var(--emerald);
+      background: rgba(52, 211, 153, 0.1);
+      border: 1px solid rgba(52, 211, 153, 0.25);
+      border-radius: 20px;
+      padding: 2px 10px;
+    }
+
+    /* Results Gallery */
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--surface-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+      display: flex;
+      flex-direction: column;
+      transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+      position: relative;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border-strong);
+      box-shadow: var(--shadow-card), 0 8px 24px rgba(0, 0, 0, 0.3);
+      background: var(--surface-card-hover);
+    }
+
+    .card.top-rank {
+      border-color: var(--accent);
+      box-shadow: 0 0 18px var(--accent-glow);
+    }
+
+    .card-rank-badge {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(10, 15, 20, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      z-index: 2;
+    }
+
+    .card-top-indicator {
+      background: linear-gradient(135deg, var(--accent), #e2694b);
+      color: #0A0F14;
+      border: none;
+    }
+
+    .card-img-wrap {
+      width: 100%;
+      height: 220px;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      background: #0F172A;
+    }
+
+    .card-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.4s ease;
+    }
+
+    .card:hover .card-img {
+      transform: scale(1.04);
+    }
+
+    .card-img-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(10, 15, 20, 0.8) 0%, transparent 60%);
+      opacity: 0;
+      transition: opacity 0.25s ease;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+    }
+
+    .card:hover .card-img-overlay {
+      opacity: 1;
+    }
+
+    .btn-quick-similar {
+      background: var(--accent);
+      color: #0A0F14;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+      transition: transform 0.15s ease;
+    }
+
+    .btn-quick-similar:hover {
+      transform: scale(1.05);
+    }
+
+    .card-body {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    .card-caption {
+      font-size: 14px;
+      line-height: 1.45;
+      color: var(--text);
+      margin-bottom: 12px;
+      font-weight: 500;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .card-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .tag {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      background: var(--surface-raised);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+
+    .tag.matched {
+      background: rgba(232, 163, 61, 0.15);
+      border-color: var(--accent);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* Score meter */
+    .score-meter {
+      margin-top: auto;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .score-meter-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11.5px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .score-meter-header b {
+      color: var(--accent);
+      font-size: 13px;
+    }
+
+    .score-bar-bg {
+      height: 5px;
+      background: var(--surface-raised);
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+    }
+
+    .score-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--cyan), var(--accent));
+      border-radius: 10px;
+      transition: width 0.5s ease;
+    }
+
+    .score-breakdown-details {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10.5px;
+      color: var(--text-faint);
+      margin-top: 6px;
+    }
+
+    /* Empty state & No Match State */
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 60px 24px;
+      background: var(--surface);
+      border: 1px dashed var(--border);
+      border-radius: var(--radius-lg);
+    }
+
+    .empty-state.no-match {
+      background: rgba(22, 36, 45, 0.85);
+      border: 1px solid var(--border-strong);
+      padding: 50px 30px;
+    }
+
+    .no-match-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #F87171;
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      padding: 4px 14px;
+      border-radius: 30px;
+      margin-bottom: 16px;
+    }
+
+    .no-match-icon {
+      width: 52px;
+      height: 52px;
+      margin: 0 auto 16px;
+      color: var(--accent);
+      background: var(--surface-raised);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .no-match-icon svg { width: 26px; height: 26px; }
+
+    .empty-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    .empty-desc {
+      font-size: 14.5px;
+      color: var(--text-muted);
+      max-width: 500px;
+      margin: 0 auto 20px;
+      line-height: 1.6;
+    }
+
+    .suggested-box {
+      background: var(--surface-raised);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 24px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .suggested-title {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-faint);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    /* Lightbox Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 10, 15, 0.85);
+      backdrop-filter: blur(12px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 24px;
+    }
+
+    .modal-overlay.open { display: flex; animation: fadeIn 0.2s ease; }
+
+    .modal-container {
+      background: var(--surface-card);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg);
+      max-width: 960px;
+      width: 100%;
+      max-height: 90vh;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+      position: relative;
+    }
+
+    .modal-img-col {
+      background: #070B0E;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .modal-img-col img {
+      width: 100%;
+      height: 100%;
+      max-height: 90vh;
+      object-fit: contain;
+    }
+
+    .modal-info-col {
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .modal-close-btn {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      background: var(--surface-raised);
+      border: 1px solid var(--border);
+      color: var(--text);
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+
+    .modal-close-btn:hover { background: var(--accent); color: #0A0F14; }
+
+    .modal-filename {
+      font-size: 12px;
+      color: var(--text-faint);
+      margin-bottom: 6px;
+      word-break: break-all;
+    }
+
+    .modal-caption-heading {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+
+    .modal-caption {
+      font-size: 16px;
+      color: var(--text);
+      line-height: 1.5;
+      margin-bottom: 18px;
+    }
+
+    .modal-scores {
+      background: var(--surface-raised);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 20px;
+    }
+
+    .modal-score-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .modal-score-row:last-child { border-bottom: none; font-weight: 700; color: var(--accent); }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: auto;
+      padding-top: 20px;
+    }
+
+    .btn-modal-action {
+      flex: 1;
+      padding: 12px;
+      border-radius: 10px;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 13.5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-modal-action.primary {
+      background: var(--accent);
+      color: #0A0F14;
+      border: none;
+    }
+
+    .btn-modal-action.secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .btn-modal-action:hover {
+      transform: translateY(-1px);
+    }
+
+    /* Modal for Stats & Health */
+    .info-modal {
+      background: var(--surface-card);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg);
+      max-width: 600px;
+      width: 100%;
+      padding: 32px;
+      position: relative;
+    }
+
+    .info-modal-title {
+      font-family: 'Fraunces', serif;
+      font-size: 26px;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .stat-box {
+      background: var(--surface-raised);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+    }
+
+    .stat-box-val {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .stat-box-lbl {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @media (max-width: 768px) {
+      .hero-title { font-size: 34px; }
+      .modal-container { grid-template-columns: 1fr; max-height: 85vh; }
+      .modal-img-col { max-height: 280px; }
+      .search-input-group { flex-direction: column; align-items: stretch; }
+      .count-selector-group { justify-content: space-between; }
+      .btn-search { width: 100%; justify-content: center; }
+    }
+  </style>
 </head>
 <body>
-<div class="wrap">
 
-  <div class="navbar">
-    <div class="brand" style="cursor:pointer;" onclick="showMainView()">Lens<em>.</em></div>
-    <div class="nav-actions">
-      <button class="nav-link" onclick="triggerBuildIndex()">Build Index</button>
-      <button class="nav-link" onclick="document.getElementById('uploadFile').click()">Upload</button>
-      <button class="nav-link" onclick="loadStatsInline()">Stats</button>
-      <button class="nav-link" onclick="loadHealthInline()">Health</button>
-      <button class="nav-link" onclick="showAboutPage()">About</button>
-      <button class="theme-toggle" onclick="toggleTheme()">🌙 / ☀️</button>
-    </div>
-  </div>
+  <div class="container">
 
-  <input type="file" id="uploadFile" accept="image/*" multiple style="display:none" onchange="handleUploadFileSelect(event)">
-
-  <div id="mainView">
-  <header>
-    <p class="eyebrow">CLIP + BLIP + FAISS HNSW · Hybrid Retrieval</p>
-    <h1>Search by <em>meaning</em>,<br>ranked by <em>relevance</em>.</h1>
-    <p class="sub">Search with words, or upload an image to find visually and semantically similar ones — both run through the same CLIP embedding space.</p>
-  </header>
-
-  <div class="mode-tabs">
-    <button class="mode-tab active" id="tab-text" onclick="switchMode('text')">Search by Text</button>
-    <button class="mode-tab" id="tab-image" onclick="switchMode('image')">Search by Image</button>
-  </div>
-
-  <div class="search-panel">
-
-    <div id="text-mode">
-      <div class="search-row">
-        <input type="text" id="query" placeholder="a red car, a person by the water, food on a table...">
-        <button class="primary" onclick="runTextSearch()">Search</button>
+    <!-- Header Navigation -->
+    <header class="site-header">
+      <div class="brand" onclick="resetToHome()">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><circle cx="11" cy="11" r="3"/></svg>
+        </div>
+        <div class="brand-title">Lens<em>.</em></div>
+        <span class="badge-hybrid">HNSW + BM25</span>
       </div>
-      <button class="advanced-toggle" onclick="toggleAdvanced()">
-        <span id="advanced-label">Show advanced options</span>
-      </button>
-      <div class="advanced" id="advanced">
-        <div class="control">
-          <label><span>Number of results</span></label>
-          <input type="number" id="topk" min="1" max="50" value="6" class="number-input">
-        </div>
-        <div class="control">
-          <label><span>CLIP weight</span><span id="clipw-val">0.8</span></label>
-          <input type="range" id="clipw" min="0" max="1" value="0.8" step="0.1" oninput="syncWeights('clip')">
-        </div>
-        <div class="control">
-          <label><span>Keyword weight</span><span id="kwv-val">0.2</span></label>
-          <input type="range" id="kwv" min="0" max="1" value="0.2" step="0.1" oninput="syncWeights('keyword')">
-        </div>
-        <div class="control">
-          <label><span>Minimum score</span><span id="minscore-val">0.15</span></label>
-          <input type="range" id="minscore" min="0" max="0.6" value="0.15" step="0.01" oninput="document.getElementById('minscore-val').innerText = parseFloat(this.value).toFixed(2)">
-        </div>
-        <p class="weight-hint">CLIP weight + keyword weight are linked to sum to 1 — moving one adjusts the other, matching how the backend combines them.</p>
-      </div>
-    </div>
 
-    <div id="image-mode" style="display:none;">
-      <div class="search-row">
-        <button class="upload-btn" onclick="document.getElementById('imageFile').click()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg>
-          Upload Image
+      <div class="nav-actions">
+        <button class="btn-nav" onclick="triggerBuildIndex()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          Re-Index
         </button>
-        <div class="preview-panel" id="previewPanel">
-          <img id="preview" src="">
-          <span id="dropzone-label">No image selected yet</span>
-        </div>
-        <button class="primary" id="image-search-btn" onclick="runImageSearch()" disabled>Search</button>
+        <button class="btn-nav" onclick="document.getElementById('hiddenMultiUpload').click()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Upload
+        </button>
+        <button class="btn-nav" onclick="openStatsModal()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          Stats
+        </button>
+        <button class="btn-theme" onclick="toggleTheme()" title="Toggle Light/Dark Theme">
+          <span id="themeIcon">☀️</span>
+        </button>
       </div>
-      <input type="file" id="imageFile" accept="image/*" style="display:none" onchange="handleFileSelect(event)">
-      <button class="advanced-toggle" onclick="toggleAdvancedImg()">
-        <span id="advanced-label-img">Show advanced options</span>
+    </header>
+
+    <input type="file" id="hiddenMultiUpload" accept="image/*" multiple style="display:none;" onchange="handleMultiUpload(event)">
+    <input type="file" id="hiddenSingleImageSearch" accept="image/*" style="display:none;" onchange="handleSingleImageSearchSelect(event)">
+
+    <!-- Hero Title -->
+    <div class="hero">
+      <div class="hero-eyebrow">
+        <span class="dot"></span>
+        <span id="liveStatusPill">Connected to Local FAISS Engine</span>
+      </div>
+      <h1 class="hero-title">Search images by <em>meaning</em>,<br>explore by <em>visual likeness</em>.</h1>
+      <p class="hero-sub">Type natural language queries, choose photo count, upload an image, or click "Find Similar" on any photo.</p>
+    </div>
+
+    <!-- Main Search Card -->
+    <div class="search-card">
+      <div class="mode-switch">
+        <button class="mode-btn active" id="tabText" onclick="setSearchMode('text')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Text Search
+        </button>
+        <button class="mode-btn" id="tabImage" onclick="setSearchMode('image')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          Reverse Image Search
+        </button>
+      </div>
+
+      <!-- Text Search Mode -->
+      <div id="textSearchContainer">
+        <div class="search-input-group">
+          <div class="search-input-wrapper">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="queryInput" class="search-input" placeholder="Try 'a red car', 'a dog on grass', 'delicious food', 'mountains'..." autofocus>
+          </div>
+
+          <!-- Aesthetic Stepper Counter (+ / -) -->
+          <div class="stepper-counter" title="Adjust result count">
+            <button type="button" class="stepper-btn" onclick="stepCount(-1)" id="stepperMinusBtn" aria-label="Decrease">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+            <span class="stepper-value" id="stepperValue">6</span>
+            <button type="button" class="stepper-btn" onclick="stepCount(1)" id="stepperPlusBtn" aria-label="Increase">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+          </div>
+
+          <button class="btn-search" onclick="executeTextSearch()">
+            <span>Search</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </button>
+        </div>
+
+        <!-- Feature 2: Negative Filter / Exclusion Bar -->
+        <div class="negative-filter-row">
+          <div class="negative-input-wrap">
+            <span class="negative-tag-badge">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Exclude:
+            </span>
+            <input type="text" id="negativeInput" class="negative-input" placeholder="Exclude colors or concepts (e.g. 'red', 'night')...">
+            <button type="button" class="btn-clear-neg" onclick="clearNegativeInput()" title="Clear exclusion">✕</button>
+          </div>
+          <div class="negative-hint">Tip: Supports <code>cars --without red</code> syntax</div>
+        </div>
+      </div>
+
+      <!-- Image Search Mode -->
+      <div id="imageSearchContainer" style="display:none;">
+        <div class="dropzone" id="dropzone" onclick="document.getElementById('hiddenSingleImageSearch').click()">
+          <div class="dropzone-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <div>
+            <div class="dropzone-text">Drop an image here or click to browse</div>
+            <div class="dropzone-sub">Upload any JPG, PNG, or WEBP to find visually similar photos</div>
+          </div>
+        </div>
+
+        <div class="preview-strip" id="previewStrip">
+          <img id="imageQueryPreview" class="preview-thumb" src="">
+          <div class="preview-meta">
+            <div class="preview-name" id="previewFilename">image.jpg</div>
+            <div class="preview-size" id="previewDimensions">Ready to search</div>
+          </div>
+
+          <!-- Feature 1: Composed Multimodal Text Refinement -->
+          <div class="composed-refinement-group" title="Add text modifier to refine this image search">
+            <span class="composed-icon">✨</span>
+            <input type="text" id="imageModifierInput" class="composed-input" placeholder="Refine (e.g. 'on race track', 'at sunset')...">
+          </div>
+
+          <button class="btn-search" id="btnExecuteImageSearch" onclick="executeImageSearch()">
+            <span>Find Matches</span>
+          </button>
+          <button class="btn-remove-preview" onclick="clearImageQuery()" title="Clear">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Explore Chips -->
+      <div class="explore-chips">
+        <span class="explore-label">Quick Explore:</span>
+        <span class="chip" onclick="quickSearch('a red car')">🏎️ Red Sports Car</span>
+        <span class="chip" onclick="quickSearch('car --without red')">🚫 Car (No Red)</span>
+        <span class="chip" onclick="quickSearch('a dog')">🐕 Playful Dog</span>
+        <span class="chip" onclick="quickSearch('food on a table')">☕ Breakfast & Coffee</span>
+        <span class="chip" onclick="quickSearch('mountains and nature')">🏔️ Mountain Lake</span>
+        <span class="chip" onclick="quickSearch('technology')">💻 Modern Tech</span>
+        <span class="chip" onclick="quickSearch('a person smiling')">👤 Person Smiling</span>
+        <span class="chip" onclick="quickSearch('a city street at night')">🏙️ Night City</span>
+      </div>
+
+      <!-- Fine Tuning Drawer Toggle -->
+      <button class="tuning-toggle" onclick="toggleTuningPanel()">
+        <span>Fine-Tune Retrieval & Weighting</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
-      <div class="advanced" id="advanced-img">
-        <div class="control">
-          <label><span>Number of results</span></label>
-          <input type="number" id="topk-img" min="1" max="50" value="6" class="number-input">
+
+      <!-- Tuning Panel -->
+      <div class="tuning-panel" id="tuningPanel">
+        <div class="control-item">
+          <div class="control-label">
+            <span>CLIP Semantic Weight</span>
+            <span id="clipWeightVal">0.8</span>
+          </div>
+          <input type="range" id="clipWeightSlider" min="0" max="1" step="0.05" value="0.8" oninput="syncWeights('clip')">
         </div>
-        <p class="weight-hint">Image-to-image similarity runs on the same CLIP embeddings, but scores sit on a different scale than text search (same-modality comparisons score higher) — so no keyword weighting applies here.</p>
+
+        <div class="control-item">
+          <div class="control-label">
+            <span>BM25 Keyword Weight</span>
+            <span id="kwWeightVal">0.2</span>
+          </div>
+          <input type="range" id="kwWeightSlider" min="0" max="1" step="0.05" value="0.2" oninput="syncWeights('kw')">
+        </div>
+
+        <div class="control-item">
+          <div class="control-label">
+            <span>Min Confidence Threshold</span>
+            <span id="minScoreVal">0.20</span>
+          </div>
+          <input type="range" id="minScoreSlider" min="0" max="0.5" step="0.01" value="0.20" oninput="document.getElementById('minScoreVal').innerText = parseFloat(this.value).toFixed(2)">
+        </div>
+
+        <div class="control-item">
+          <div class="control-label">
+            <span>Top Results</span>
+            <span id="topKVal">6</span>
+          </div>
+          <input type="range" id="topKSlider" min="2" max="25" step="1" value="6" oninput="handleSliderCountChange(this.value)">
+        </div>
+
+        <div class="tuning-formula-hint">
+          <b>Hybrid Scoring Formula:</b> <code>Final Score = (CLIP Weight × Semantic Cosine) + (Keyword Weight × BM25 Overlap)</code>.
+          Candidates without caption overlap require confident CLIP similarity to avoid returning random nearest neighbors.
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="results-summary" id="resultsSummary">Ready to search. Click any quick explore chip or type a prompt.</div>
+      <div class="telemetry-tag" id="telemetryTag" style="display:none;"></div>
+    </div>
+
+    <!-- Gallery Grid -->
+    <div class="gallery" id="resultsGallery">
+      <div class="empty-state">
+        <svg style="width:52px; height:52px; margin:0 auto 14px; color:var(--text-faint);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><path d="M11 8v6M8 11h6"/></svg>
+        <div class="empty-title">Discover images effortlessly</div>
+        <div class="empty-desc">Click any of the Quick Explore chips above or type a description to see semantic image retrieval in action.</div>
       </div>
     </div>
 
   </div>
 
-  <p class="nav-status-row" id="navStatus"></p>
-
-  <div class="status-row">
-    <span class="status-text" id="status"></span>
-  </div>
-
-  <div class="results" id="results">
-    <div class="empty">Run a search to see results here.</div>
-  </div>
-
-  <p class="note" id="footnote">
-    Final score = (CLIP weight × semantic similarity) + (keyword weight × caption keyword overlap). The backend retrieves a wider candidate pool via FAISS first, then reranks by this combined score — so a strong keyword match can outrank a slightly higher raw CLIP score.
-  </p>
-  </div>
-
-  <div id="aboutView" style="display:none;">
-    <div class="about-hero">
-      <p class="eyebrow">About</p>
-      <h1>How <em>Lens</em> works.</h1>
-      <p class="sub" style="max-width:640px;">A hybrid semantic image search engine that understands both meaning and exact wording — built to run entirely on your own machine.</p>
-    </div>
-
-    <div class="about-block">
-      <p class="about-block-title">How it works</p>
-      <p class="about-lead">
-        Every image is embedded with CLIP and automatically captioned with BLIP. Text queries are matched against a FAISS HNSW index for fast semantic retrieval, then reranked using a tunable blend of CLIP similarity and caption keyword overlap. Image queries reuse the same CLIP embedding space, enabling reverse image search.
-      </p>
-    </div>
-
-    <div class="about-block">
-      <p class="about-block-title">Technology</p>
-      <div class="tech-grid">
-        <div class="tech-card"><div class="name">CLIP</div><div class="role">Visual & text embeddings</div></div>
-        <div class="tech-card"><div class="name">BLIP</div><div class="role">Automatic image captioning</div></div>
-        <div class="tech-card"><div class="name">FAISS HNSW</div><div class="role">Approximate nearest-neighbor search</div></div>
-        <div class="tech-card"><div class="name">FastAPI</div><div class="role">REST backend</div></div>
-        <div class="tech-card"><div class="name">Vanilla JS</div><div class="role">No framework frontend</div></div>
-        <div class="tech-card"><div class="name">PyTorch</div><div class="role">Model inference</div></div>
+  <!-- Lightbox Modal -->
+  <div class="modal-overlay" id="lightboxModal" onclick="closeLightboxOnBackdrop(event)">
+    <div class="modal-container">
+      <button class="modal-close-btn" onclick="closeLightbox()">✕</button>
+      <div class="modal-img-col">
+        <img id="modalImg" src="" alt="Selected image">
       </div>
-    </div>
+      <div class="modal-info-col">
+        <div class="modal-filename" id="modalFilename">filename.jpg</div>
+        <div class="modal-caption-heading">BLIP Generated Caption</div>
+        <div class="modal-caption" id="modalCaption">Caption here</div>
 
-    <div class="about-block">
-      <p class="about-block-title">Features</p>
-      <div class="feature-grid">
-        <div class="feature-card"><span class="dot"></span>Natural language image search</div>
-        <div class="feature-card"><span class="dot"></span>Reverse image search</div>
-        <div class="feature-card"><span class="dot"></span>Adjustable CLIP / keyword weighting</div>
-        <div class="feature-card"><span class="dot"></span>Multi-image drag-and-drop upload</div>
-        <div class="feature-card"><span class="dot"></span>Background index building with live progress</div>
-        <div class="feature-card"><span class="dot"></span>Dataset statistics and health monitoring</div>
-        <div class="feature-card"><span class="dot"></span>Light and dark themes</div>
-        <div class="feature-card"><span class="dot"></span>Fully offline after initial model download</div>
-      </div>
-    </div>
+        <div class="modal-caption-heading" style="margin-top:8px;">Semantic Keywords</div>
+        <div class="card-tags" id="modalTags"></div>
 
-    <button class="back-btn" onclick="showMainView()">← Back to Search</button>
-  </div>
+        <div class="modal-scores" id="modalScores">
+          <div class="modal-score-row"><span>CLIP Semantic Similarity:</span><span id="modalClipScore">0.00</span></div>
+          <div class="modal-score-row"><span>BM25 Keyword Match:</span><span id="modalKwScore">0.00</span></div>
+          <div class="modal-score-row"><span>Composite Final Score:</span><span id="modalFinalScore">0.00</span></div>
+        </div>
 
-</div>
-
-<script>
-  const API_BASE = "http://127.0.0.1:8000";
-  let currentMode = 'text';
-  let selectedFile = null;
-  let uploadSelectedFiles = [];
-  let buildPollInterval = null;
-
-  const MOCK_TEXT_RESULTS = [
-    { filename: "image-1.jpg", caption: "a toy car is sitting on a red box", keywords: ["toy","car","sitting","red","box"], clip_score: 0.2622, keyword_score: 1.0, final_score: 0.4098 },
-    { filename: "image-71.jpg", caption: "a car parked in front of a brick wall", keywords: ["car","parked","front","brick","wall"], clip_score: 0.2642, keyword_score: 0.5, final_score: 0.3114 },
-    { filename: "image-856.jpg", caption: "a red seat on a train", keywords: ["red","seat","train"], clip_score: 0.2526, keyword_score: 0.5, final_score: 0.3021 }
-  ];
-
-  function switchMode(mode) {
-    currentMode = mode;
-    document.getElementById('tab-text').classList.toggle('active', mode === 'text');
-    document.getElementById('tab-image').classList.toggle('active', mode === 'image');
-    document.getElementById('text-mode').style.display = mode === 'text' ? 'block' : 'none';
-    document.getElementById('image-mode').style.display = mode === 'image' ? 'block' : 'none';
-    document.getElementById('footnote').style.display = mode === 'text' ? 'block' : 'none';
-    document.getElementById('status').innerText = '';
-    document.getElementById('results').innerHTML = '<div class="empty">Run a search to see results here.</div>';
-  }
-
-  function toggleAdvanced() {
-    const panel = document.getElementById('advanced');
-    const label = document.getElementById('advanced-label');
-    const open = panel.classList.toggle('open');
-    label.innerText = open ? 'Hide advanced options' : 'Show advanced options';
-  }
-
-  function toggleAdvancedImg() {
-    const panel = document.getElementById('advanced-img');
-    const label = document.getElementById('advanced-label-img');
-    const open = panel.classList.toggle('open');
-    label.innerText = open ? 'Hide advanced options' : 'Show advanced options';
-  }
-
-  function syncWeights(changed) {
-    const clipSlider = document.getElementById('clipw');
-    const kwSlider = document.getElementById('kwv');
-    if (changed === 'clip') {
-      kwSlider.value = (1 - parseFloat(clipSlider.value)).toFixed(1);
-    } else {
-      clipSlider.value = (1 - parseFloat(kwSlider.value)).toFixed(1);
-    }
-    document.getElementById('clipw-val').innerText = clipSlider.value;
-    document.getElementById('kwv-val').innerText = kwSlider.value;
-  }
-
-  function handleFileSelect(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    selectedFile = file;
-    document.getElementById('preview').src = URL.createObjectURL(file);
-    document.getElementById('previewPanel').classList.add('has-image');
-    document.getElementById('dropzone-label').innerText = file.name;
-    document.getElementById('image-search-btn').disabled = false;
-  }
-
-  function renderKeywordTags(keywords, queryWords) {
-    return keywords.map(k => {
-      const matched = queryWords.has(k.toLowerCase());
-      return `<span class="keyword-tag ${matched ? 'matched' : ''}">${k}</span>`;
-    }).join('');
-  }
-
-  function renderTextResults(query, results, timeMs) {
-    const statusEl = document.getElementById('status');
-    const resultsEl = document.getElementById('results');
-    const queryWords = new Set(query.toLowerCase().split(/\s+/));
-
-    if (results.length === 0) {
-      statusEl.innerHTML = `No confident matches for <b>"${query}"</b> — try lowering the minimum score.`;
-      resultsEl.innerHTML = '<div class="empty">Nothing above the current threshold.</div>';
-      return;
-    }
-
-    statusEl.innerHTML = `<b>${results.length}</b> matches for <b>"${query}"</b> · ${timeMs}ms`;
-
-    resultsEl.innerHTML = results.map((r, i) => `
-      <div class="card ${i === 0 ? 'top-match' : ''}">
-        <img class="result-img" src="${API_BASE}/images/${r.filename}" alt="${r.filename}" onerror="this.style.display='none'">
-        <div class="card-body">
-          <div class="filename">${r.filename}</div>
-          <div class="caption">${r.caption || '—'}</div>
-          <div class="keywords">${renderKeywordTags(r.keywords || [], queryWords)}</div>
-          <div class="score-breakdown">
-            <span>CLIP: ${r.clip_score}</span>
-            <span>Keyword: ${r.keyword_score}</span>
-            <span>Final: <b>${r.final_score}</b></span>
+        <!-- Feature 1: Composed Multimodal Refinement in Modal -->
+        <div class="modal-composed-box">
+          <div class="modal-caption-heading" style="color:var(--cyan); margin-bottom:4px;">✨ Composed Multimodal Refinement</div>
+          <div style="font-size:11.5px; color:var(--text-muted); margin-bottom:8px;">
+            Modify this photo with text (e.g. <i>"on race track"</i>, <i>"at sunset"</i>, <i>"in rain"</i>):
+          </div>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="modalModifierInput" class="composed-input" style="flex:1; border:1px solid rgba(56, 189, 248, 0.35); border-radius:8px; padding:7px 10px; background:rgba(0,0,0,0.25);" placeholder="Type refinement modifier...">
+            <button class="btn-modal-action primary" style="flex:initial; padding:7px 14px; font-size:12.5px;" onclick="runComposedSearchFromModal()">
+              Refine & Search
+            </button>
           </div>
         </div>
-      </div>`).join('');
-  }
 
-  function renderImageResults(results, timeMs) {
-    const statusEl = document.getElementById('status');
-    const resultsEl = document.getElementById('results');
-
-    if (results.length === 0) {
-      statusEl.innerText = 'No matches found.';
-      resultsEl.innerHTML = '<div class="empty">No similar images found.</div>';
-      return;
-    }
-
-    statusEl.innerHTML = `<b>${results.length}</b> visually similar images · ${timeMs}ms`;
-
-    resultsEl.innerHTML = results.map((r, i) => `
-      <div class="card ${i === 0 ? 'top-match' : ''}">
-        <img class="result-img" src="${API_BASE}/images/${r.filename}" alt="${r.filename}" onerror="this.style.display='none'">
-        <div class="card-body">
-          <div class="filename">${r.filename}</div>
-          <div class="caption">${r.caption || '—'}</div>
-          <div class="score-breakdown">
-            <span>Image similarity</span>
-            <span><b>${(r.similarity * 100).toFixed(1)}%</b></span>
-          </div>
+        <div class="modal-actions">
+          <button class="btn-modal-action primary" id="btnModalFindSimilar" onclick="runFindSimilarFromModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Find Similar Photos
+          </button>
+          <button class="btn-modal-action secondary" onclick="copyCaptionToClipboard()">
+            Copy Caption
+          </button>
         </div>
-      </div>`).join('');
-  }
+      </div>
+    </div>
+  </div>
 
-  async function runTextSearch() {
-    const query = document.getElementById('query').value.trim();
-    if (!query) return;
+  <!-- Stats Modal -->
+  <div class="modal-overlay" id="statsModal" onclick="closeStatsOnBackdrop(event)">
+    <div class="info-modal">
+      <button class="modal-close-btn" onclick="closeStatsModal()">✕</button>
+      <h2 class="info-modal-title">System & Dataset Stats</h2>
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-box"><div class="stat-box-val" id="statTotalImages">—</div><div class="stat-box-lbl">Indexed Images</div></div>
+        <div class="stat-box"><div class="stat-box-val" id="statDim">512D</div><div class="stat-box-lbl">CLIP Embedding Dim</div></div>
+        <div class="stat-box"><div class="stat-box-val" id="statLatency">—</div><div class="stat-box-lbl">Avg Search Latency</div></div>
+        <div class="stat-box"><div class="stat-box-val" id="statDevice">—</div><div class="stat-box-lbl">Compute Device</div></div>
+      </div>
+      <div style="font-size:12.5px; color:var(--text-muted); line-height:1.6;" id="statsTopKeywords">
+        Loading top keywords...
+      </div>
+    </div>
+  </div>
 
-    const topK = document.getElementById('topk').value;
-    const clipWeight = document.getElementById('clipw').value;
-    const keywordWeight = document.getElementById('kwv').value;
-    const minScore = document.getElementById('minscore').value;
+  <script>
+    const API_BASE = "http://127.0.0.1:8000";
+    let searchMode = 'text';
+    let currentResults = [];
+    let activeModalItem = null;
+    let selectedImageFile = null;
 
-    document.getElementById('status').innerText = 'Searching…';
-    const start = performance.now();
-
-    try {
-      const url = `${API_BASE}/search?query=${encodeURIComponent(query)}&top_k=${topK}&clip_weight=${clipWeight}&keyword_weight=${keywordWeight}&min_score=${minScore}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('backend not reachable');
-      const data = await res.json();
-      const elapsed = Math.round(performance.now() - start);
-      renderTextResults(query, data.results, elapsed);
-    } catch (err) {
-      const elapsed = Math.round(performance.now() - start);
-      const filtered = MOCK_TEXT_RESULTS.filter(r => r.final_score >= parseFloat(minScore)).slice(0, topK);
-      renderTextResults(query + ' (preview data — backend not connected)', filtered, elapsed);
+    // Initialize Theme
+    function initTheme() {
+      const saved = localStorage.getItem('lens_theme') || 'dark';
+      document.body.setAttribute('data-theme', saved);
+      document.getElementById('themeIcon').innerText = saved === 'light' ? '🌙' : '☀️';
     }
-  }
 
-  async function runImageSearch() {
-    if (!selectedFile) return;
-    const topK = document.getElementById('topk-img').value;
-    document.getElementById('status').innerText = 'Searching…';
-    const start = performance.now();
-
-    const formData = new FormData();
-    formData.append('file', selectedFile);
-
-    try {
-      const res = await fetch(`${API_BASE}/search-by-image?top_k=${topK}`, { method: 'POST', body: formData });
-      if (!res.ok) throw new Error('backend not reachable');
-      const data = await res.json();
-      const elapsed = Math.round(performance.now() - start);
-      renderImageResults(data.results, elapsed);
-    } catch (err) {
-      document.getElementById('status').innerText = 'Unable to reach the server. Please ensure the backend is running.';
-      document.getElementById('results').innerHTML = '<div class="empty">Backend not connected.</div>';
+    function toggleTheme() {
+      const current = document.body.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.body.setAttribute('data-theme', next);
+      localStorage.setItem('lens_theme', next);
+      document.getElementById('themeIcon').innerText = next === 'light' ? '🌙' : '☀️';
     }
-  }
 
-  document.getElementById('query').addEventListener('keypress', e => {
-    if (e.key === 'Enter') runTextSearch();
-  });
-
-  function showAboutPage() {
-    document.getElementById('mainView').style.display = 'none';
-    document.getElementById('aboutView').style.display = 'block';
-  }
-
-  function showMainView() {
-    document.getElementById('mainView').style.display = 'block';
-    document.getElementById('aboutView').style.display = 'none';
-  }
-
-  function navStatus(html) {
-    showMainView();
-    document.getElementById('navStatus').innerHTML = html;
-  }
-
-  async function triggerBuildIndex() {
-    navStatus('Starting index build…');
-    try {
-      await fetch(`${API_BASE}/build-index`, { method: 'POST' });
-    } catch (err) {
-      navStatus('Unable to reach the server. Please ensure the backend is running.');
-      return;
+    function setSearchMode(mode) {
+      searchMode = mode;
+      document.getElementById('tabText').classList.toggle('active', mode === 'text');
+      document.getElementById('tabImage').classList.toggle('active', mode === 'image');
+      document.getElementById('textSearchContainer').style.display = mode === 'text' ? 'block' : 'none';
+      document.getElementById('imageSearchContainer').style.display = mode === 'image' ? 'block' : 'none';
     }
-    if (buildPollInterval) clearInterval(buildPollInterval);
-    buildPollInterval = setInterval(async () => {
-      try {
-        const res = await fetch(`${API_BASE}/build-status`);
-        const data = await res.json();
-        if (data.status === 'running') {
-          navStatus(`Indexing ${data.processed} of ${data.total} images…`);
-        } else if (data.status === 'done') {
-          navStatus(data.message);
-          clearInterval(buildPollInterval);
-        }
-      } catch (err) {
-        clearInterval(buildPollInterval);
+
+    function toggleTuningPanel() {
+      const panel = document.getElementById('tuningPanel');
+      const toggle = document.querySelector('.tuning-toggle');
+      panel.classList.toggle('open');
+      toggle.classList.toggle('open');
+    }
+
+    function syncWeights(source) {
+      const clipSlider = document.getElementById('clipWeightSlider');
+      const kwSlider = document.getElementById('kwWeightSlider');
+      if (source === 'clip') {
+        kwSlider.value = (1 - parseFloat(clipSlider.value)).toFixed(2);
+      } else {
+        clipSlider.value = (1 - parseFloat(kwSlider.value)).toFixed(2);
       }
-    }, 1500);
-  }
-
-  function handleUploadFileSelect(event) {
-    uploadSelectedFiles = Array.from(event.target.files);
-    if (uploadSelectedFiles.length === 0) return;
-    runUpload();
-  }
-
-  async function runUpload() {
-    navStatus(`Uploading and processing ${uploadSelectedFiles.length} image(s)…`);
-    const formData = new FormData();
-    uploadSelectedFiles.forEach(f => formData.append('files', f));
-
-    try {
-      const res = await fetch(`${API_BASE}/upload`, { method: 'POST', body: formData });
-      const data = await res.json();
-      const skippedText = data.skipped.length ? `, skipped: ${data.skipped.join(', ')}` : '';
-      navStatus(`Successfully added ${data.uploaded.length} image(s)${skippedText}. Total indexed images: ${data.total_images_now}`);
-    } catch (err) {
-      navStatus('Unable to reach the server. Please ensure the backend is running.');
+      document.getElementById('clipWeightVal').innerText = parseFloat(clipSlider.value).toFixed(2);
+      document.getElementById('kwWeightVal').innerText = parseFloat(kwSlider.value).toFixed(2);
     }
-}
 
-  async function loadStatsInline() {
-    navStatus('Loading dataset statistics…');
-    try {
-      const res = await fetch(`${API_BASE}/stats`);
-      const data = await res.json();
-      const latency = data.avg_search_latency_ms !== null ? `average search latency ${data.avg_search_latency_ms}ms` : 'no searches recorded yet';
-      navStatus(`${data.total_images} images indexed · ${data.embedding_dimension}-dimensional embeddings · ${data.avg_caption_words} average caption length · ${latency}`);
-    } catch (err) {
-      navStatus('Unable to reach the server. Please ensure the backend is running.');
+    // Stepper Count Adjustment (+ / -)
+    let currentResultCount = 6;
+
+    function stepCount(delta) {
+      const next = Math.max(1, Math.min(25, currentResultCount + delta));
+      if (next === currentResultCount) return;
+      currentResultCount = next;
+      document.getElementById('stepperValue').innerText = currentResultCount;
+      document.getElementById('topKSlider').value = currentResultCount;
+      document.getElementById('topKVal').innerText = currentResultCount;
+
+      const q = document.getElementById('queryInput').value.trim();
+      if (q) executeTextSearch();
     }
-  }
 
-  async function loadHealthInline() {
-    navStatus('Checking system health…');
-    try {
-      const res = await fetch(`${API_BASE}/health`);
-      const data = await res.json();
-      const statusLabel = data.status === 'ok' ? 'Operational' : data.status;
-      navStatus(`System status: ${statusLabel} · Model loaded: ${data.model_loaded ? 'Yes' : 'No'} · Indexed images: ${data.index_size}`);
-    } catch (err) {
-      navStatus('Unable to reach the server. Please ensure the backend is running.');
+    function handleSliderCountChange(val) {
+      currentResultCount = parseInt(val, 10);
+      document.getElementById('stepperValue').innerText = currentResultCount;
+      document.getElementById('topKVal').innerText = currentResultCount;
+      const q = document.getElementById('queryInput').value.trim();
+      if (q) executeTextSearch();
     }
-  }
 
-  function toggleTheme() {
-    const isLight = document.body.getAttribute('data-theme') === 'light';
-    document.body.setAttribute('data-theme', isLight ? 'dark' : 'light');
-  }
-</script>
+    function quickSearch(prompt) {
+      setSearchMode('text');
+      if (prompt.includes(' --without ')) {
+        const parts = prompt.split(' --without ');
+        document.getElementById('queryInput').value = parts[0].trim();
+        const negEl = document.getElementById('negativeInput');
+        if (negEl) negEl.value = parts[1].trim();
+      } else {
+        document.getElementById('queryInput').value = prompt;
+        const negEl = document.getElementById('negativeInput');
+        if (negEl) negEl.value = '';
+      }
+      executeTextSearch();
+    }
+
+    // Drag and Drop Handling
+    const dropzone = document.getElementById('dropzone');
+    ['dragenter', 'dragover'].forEach(eventName => {
+      window.addEventListener(eventName, e => {
+        e.preventDefault();
+        if (searchMode === 'image') dropzone.classList.add('dragover');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      window.addEventListener(eventName, e => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+      });
+    });
+
+    window.addEventListener('drop', e => {
+      if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+        setSearchMode('image');
+        handleImageFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    function handleSingleImageSearchSelect(e) {
+      if (e.target.files && e.target.files[0]) {
+        handleImageFile(e.target.files[0]);
+      }
+    }
+
+    function handleImageFile(file) {
+      selectedImageFile = file;
+      document.getElementById('previewFilename').innerText = file.name;
+      document.getElementById('previewDimensions').innerText = `${(file.size / 1024).toFixed(1)} KB`;
+      document.getElementById('imageQueryPreview').src = URL.createObjectURL(file);
+      document.getElementById('previewStrip').classList.add('active');
+    }
+
+    function clearImageQuery() {
+      selectedImageFile = null;
+      document.getElementById('previewStrip').classList.remove('active');
+      document.getElementById('hiddenSingleImageSearch').value = '';
+    }
+
+    function escapeHtml(text) {
+      const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+      return text.replace(/[&<>"']/g, m => map[m]);
+    }
+
+    function clearNegativeInput() {
+      const el = document.getElementById('negativeInput');
+      if (el) {
+        el.value = '';
+        const q = document.getElementById('queryInput').value.trim();
+        if (q) executeTextSearch();
+      }
+    }
+
+    // Search Execution
+    async function executeTextSearch() {
+      const query = document.getElementById('queryInput').value.trim();
+      if (!query) return;
+
+      const topK = currentResultCount;
+      const clipW = document.getElementById('clipWeightSlider').value;
+      const kwW = document.getElementById('kwWeightSlider').value;
+      const minScore = document.getElementById('minScoreSlider').value;
+      const negInput = document.getElementById('negativeInput');
+      const negQuery = negInput ? negInput.value.trim() : '';
+
+      renderLoading(`Searching semantic index for "${escapeHtml(query)}"${negQuery ? ` (excluding "${escapeHtml(negQuery)}")` : ''}...`);
+
+      try {
+        let url = `${API_BASE}/search?query=${encodeURIComponent(query)}&top_k=${topK}&clip_weight=${clipW}&keyword_weight=${kwW}&min_score=${minScore}&candidate_pool=50`;
+        if (negQuery) {
+          url += `&negative_query=${encodeURIComponent(negQuery)}`;
+        }
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Search request failed");
+        const data = await res.json();
+        currentResults = data.results || [];
+        const activeNeg = data.negative_query || negQuery;
+        renderGallery(currentResults, query, data.latency_ms, activeNeg);
+      } catch (err) {
+        renderError("Could not reach Lens backend server. Make sure FastAPI server is running on http://127.0.0.1:8000");
+      }
+    }
+
+    async function executeImageSearch() {
+      if (!selectedImageFile) return;
+      const topK = currentResultCount;
+      const modInput = document.getElementById('imageModifierInput');
+      const textModifier = modInput ? modInput.value.trim() : '';
+
+      const formData = new FormData();
+      formData.append('file', selectedImageFile);
+
+      if (textModifier) {
+        renderLoading(`Composing "${selectedImageFile.name}" + "${escapeHtml(textModifier)}"...`);
+        formData.append('text_modifier', textModifier);
+        formData.append('top_k', topK);
+        try {
+          const res = await fetch(`${API_BASE}/search-composed`, {
+            method: 'POST',
+            body: formData
+          });
+          if (!res.ok) throw new Error("Composed search failed");
+          const data = await res.json();
+          currentResults = data.results || [];
+          renderImageGallery(currentResults, `${selectedImageFile.name} + "${textModifier}"`, data.latency_ms);
+        } catch (err) {
+          renderError("Could not reach backend for composed multimodal search.");
+        }
+      } else {
+        renderLoading(`Analyzing visual features of ${selectedImageFile.name}...`);
+        try {
+          const res = await fetch(`${API_BASE}/search-by-image?top_k=${topK}`, {
+            method: 'POST',
+            body: formData
+          });
+          if (!res.ok) throw new Error("Image search failed");
+          const data = await res.json();
+          currentResults = data.results || [];
+          renderImageGallery(currentResults, selectedImageFile.name, data.latency_ms);
+        } catch (err) {
+          renderError("Could not reach backend for reverse image search.");
+        }
+      }
+    }
+
+    async function findSimilarToExisting(filename, e) {
+      if (e) e.stopPropagation();
+      const topK = currentResultCount;
+      renderLoading(`Finding images visually similar to ${filename}...`);
+
+      try {
+        const res = await fetch(`${API_BASE}/find-similar/${encodeURIComponent(filename)}?top_k=${topK}`);
+        if (!res.ok) throw new Error("Find similar failed");
+        const data = await res.json();
+        currentResults = data.results || [];
+        renderSimilarGallery(currentResults, filename, data.latency_ms);
+      } catch (err) {
+        renderError(`Could not find similar images for ${filename}`);
+      }
+    }
+
+    function renderLoading(msg) {
+      document.getElementById('resultsSummary').innerHTML = `<b>${msg}</b>`;
+      document.getElementById('telemetryTag').style.display = 'none';
+      document.getElementById('resultsGallery').innerHTML = `
+        <div class="empty-state">
+          <div style="font-size:28px; margin-bottom:12px;">⏳</div>
+          <div class="empty-title">${msg}</div>
+        </div>
+      `;
+    }
+
+    function renderError(msg) {
+      document.getElementById('resultsSummary').innerHTML = `<span style="color:#EF4444;">${msg}</span>`;
+      document.getElementById('resultsGallery').innerHTML = `
+        <div class="empty-state">
+          <div style="font-size:32px; margin-bottom:10px;">⚠️</div>
+          <div class="empty-title">Connection Alert</div>
+          <div class="empty-desc">${msg}</div>
+        </div>
+      `;
+    }
+
+    function renderGallery(results, query, latencyMs, negativeQuery) {
+      const summaryEl = document.getElementById('resultsSummary');
+      const telemetryEl = document.getElementById('telemetryTag');
+      const galleryEl = document.getElementById('resultsGallery');
+
+      // Zero Match / Caption Not Matched Guard
+      if (!results || results.length === 0) {
+        if (negativeQuery) {
+          summaryEl.innerHTML = `No confident match found for <b>"${escapeHtml(query)}"</b> (excluding <i>"${escapeHtml(negativeQuery)}"</i>)`;
+          telemetryEl.style.display = 'none';
+          galleryEl.innerHTML = `
+            <div class="empty-state no-match">
+              <div class="no-match-badge" style="background:rgba(239, 68, 68, 0.15); color:#F87171; border-color:rgba(239, 68, 68, 0.3);">Exclusion Filter Active</div>
+              <div class="no-match-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+              </div>
+              <div class="empty-title">No photos matched "${escapeHtml(query)}" without "${escapeHtml(negativeQuery)}"</div>
+              <div class="empty-desc">
+                All matching photos in your collection contain the excluded concept "<b>${escapeHtml(negativeQuery)}</b>". To see results, try clearing or adjusting the exclusion filter.
+              </div>
+              <div style="margin-top:14px;">
+                <button type="button" class="btn-clear-neg" style="font-size:13px; padding:7px 16px; background:rgba(239, 68, 68, 0.15); border:1px solid rgba(239, 68, 68, 0.35); border-radius:8px; color:#F87171; font-weight:600; cursor:pointer;" onclick="clearNegativeInput()">
+                  ✕ Clear Exclusion Filter ("${escapeHtml(negativeQuery)}")
+                </button>
+              </div>
+            </div>
+          `;
+        } else {
+          summaryEl.innerHTML = `No confident match found for <b>"${escapeHtml(query)}"</b>`;
+          telemetryEl.style.display = 'none';
+          galleryEl.innerHTML = `
+            <div class="empty-state no-match">
+              <div class="no-match-badge">No Relevant Match</div>
+              <div class="no-match-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+              </div>
+              <div class="empty-title">No photos matched "${escapeHtml(query)}"</div>
+              <div class="empty-desc">
+                None of the photos in your collection match this description or caption. To prevent showing random or irrelevant images, Lens only displays photos with verified semantic relevance.
+              </div>
+              <div class="suggested-box">
+                <span class="suggested-title">Try searching for subjects available in your dataset:</span>
+                <div class="explore-chips" style="justify-content:center; border-top:none; margin-top:4px; padding-top:0;">
+                  <span class="chip" onclick="quickSearch('a red car')">🏎️ Red Sports Car</span>
+                  <span class="chip" onclick="quickSearch('cars --without red')">🚫 Car (No Red)</span>
+                  <span class="chip" onclick="quickSearch('a dog')">🐕 Playful Dog</span>
+                  <span class="chip" onclick="quickSearch('food on a table')">☕ Food & Coffee</span>
+                  <span class="chip" onclick="quickSearch('mountains and nature')">🏔️ Mountain Lake</span>
+                  <span class="chip" onclick="quickSearch('technology')">💻 Technology</span>
+                  <span class="chip" onclick="quickSearch('a person smiling')">👤 Person Smiling</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+        return;
+      }
+
+      summaryEl.innerHTML = `Showing <b>${results.length}</b> verified match(es) for <b>"${escapeHtml(query)}"</b>${negativeQuery ? ` (excluding <i>"${escapeHtml(negativeQuery)}"</i>)` : ''}`;
+      telemetryEl.innerText = `${latencyMs} ms · FAISS HNSW + BM25`;
+      telemetryEl.style.display = 'inline-block';
+
+      galleryEl.innerHTML = results.map((item, index) => {
+        const isTop = index === 0;
+        const finalScorePct = Math.min(100, Math.round(item.final_score * 100));
+        const tagsHtml = (item.keywords || []).slice(0, 5).map(k => {
+          const isMatched = (item.matched_keywords || []).includes(k.toLowerCase());
+          return `<span class="tag ${isMatched ? 'matched' : ''}">${k}</span>`;
+        }).join('');
+
+        return `
+          <div class="card ${isTop ? 'top-rank' : ''}" onclick="openLightbox(${index})">
+            <div class="card-rank-badge ${isTop ? 'card-top-indicator' : ''}">
+              ${isTop ? '★ Top Match' : `#${index + 1}`}
+            </div>
+            <div class="card-img-wrap">
+              <img class="card-img" src="${API_BASE}/thumbnails/${item.filename}" alt="${item.filename}" onerror="this.src='${API_BASE}/images/${item.filename}'">
+              <div class="card-img-overlay">
+                <button class="btn-quick-similar" onclick="findSimilarToExisting('${item.filename}', event)">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  Find Similar
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="card-caption">${item.caption || 'No caption available'}</div>
+              <div class="card-tags">${tagsHtml}</div>
+              <div class="score-meter">
+                <div class="score-meter-header">
+                  <span>Match Confidence</span>
+                  <b>${(item.final_score).toFixed(4)}</b>
+                </div>
+                <div class="score-bar-bg">
+                  <div class="score-bar-fill" style="width: ${finalScorePct}%;"></div>
+                </div>
+                <div class="score-breakdown-details">
+                  <span>CLIP: ${(item.clip_score).toFixed(3)}</span>
+                  <span>BM25: ${(item.keyword_score).toFixed(3)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderImageGallery(results, queryName, latencyMs) {
+      const summaryEl = document.getElementById('resultsSummary');
+      const telemetryEl = document.getElementById('telemetryTag');
+      const galleryEl = document.getElementById('resultsGallery');
+
+      if (!results || results.length === 0) {
+        summaryEl.innerHTML = `No visually similar photos found for <b>${escapeHtml(queryName)}</b>`;
+        telemetryEl.style.display = 'none';
+        galleryEl.innerHTML = `
+          <div class="empty-state no-match">
+            <div class="empty-title">No similar photos found</div>
+            <div class="empty-desc">Try another image or lower the confidence threshold in Fine-Tuning.</div>
+          </div>
+        `;
+        return;
+      }
+
+      summaryEl.innerHTML = `Found <b>${results.length}</b> visually similar photos to <b>${escapeHtml(queryName)}</b>`;
+      telemetryEl.innerText = `${latencyMs} ms · CLIP Vision Embedding`;
+      telemetryEl.style.display = 'inline-block';
+
+      galleryEl.innerHTML = results.map((item, index) => {
+        const isTop = index === 0;
+        const simPct = Math.round((item.similarity || 0) * 100);
+        return `
+          <div class="card ${isTop ? 'top-rank' : ''}" onclick="openLightbox(${index})">
+            <div class="card-rank-badge ${isTop ? 'card-top-indicator' : ''}">
+              ${isTop ? '★ Closest Match' : `#${index + 1}`}
+            </div>
+            <div class="card-img-wrap">
+              <img class="card-img" src="${API_BASE}/thumbnails/${item.filename}" alt="${item.filename}" onerror="this.src='${API_BASE}/images/${item.filename}'">
+              <div class="card-img-overlay">
+                <button class="btn-quick-similar" onclick="findSimilarToExisting('${item.filename}', event)">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  Find Similar
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="card-caption">${item.caption || 'No caption'}</div>
+              <div class="score-meter">
+                <div class="score-meter-header">
+                  <span>Visual Likeness</span>
+                  <b>${simPct}%</b>
+                </div>
+                <div class="score-bar-bg">
+                  <div class="score-bar-fill" style="width: ${simPct}%;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderSimilarGallery(results, targetFilename, latencyMs) {
+      renderImageGallery(results, `[${targetFilename}]`, latencyMs);
+    }
+
+    // Lightbox Modal Controls
+    function openLightbox(index) {
+      const item = currentResults[index];
+      if (!item) return;
+      activeModalItem = item;
+
+      document.getElementById('modalImg').src = `${API_BASE}/images/${item.filename}`;
+      document.getElementById('modalFilename').innerText = item.filename;
+      document.getElementById('modalCaption').innerText = item.caption || 'No caption available.';
+
+      const modInput = document.getElementById('modalModifierInput');
+      if (modInput) modInput.value = '';
+
+      const tagsHtml = (item.keywords || []).map(k => `<span class="tag">${k}</span>`).join('');
+      document.getElementById('modalTags').innerHTML = tagsHtml;
+
+      document.getElementById('modalClipScore').innerText = item.clip_score !== undefined ? item.clip_score.toFixed(4) : (item.similarity ? item.similarity.toFixed(4) : '—');
+      document.getElementById('modalKwScore').innerText = item.keyword_score !== undefined ? item.keyword_score.toFixed(4) : '—';
+      document.getElementById('modalFinalScore').innerText = item.final_score !== undefined ? item.final_score.toFixed(4) : (item.similarity ? `${(item.similarity * 100).toFixed(1)}%` : '—');
+
+      document.getElementById('lightboxModal').classList.add('open');
+    }
+
+    function closeLightbox() {
+      document.getElementById('lightboxModal').classList.remove('open');
+      activeModalItem = null;
+    }
+
+    function closeLightboxOnBackdrop(e) {
+      if (e.target.id === 'lightboxModal') closeLightbox();
+    }
+
+    function runFindSimilarFromModal() {
+      if (!activeModalItem) return;
+      const fname = activeModalItem.filename;
+      closeLightbox();
+      findSimilarToExisting(fname);
+    }
+
+    async function runComposedSearchFromModal() {
+      if (!activeModalItem) return;
+      const baseFilename = activeModalItem.filename;
+      const modInput = document.getElementById('modalModifierInput');
+      const textModifier = modInput ? modInput.value.trim() : '';
+      if (!textModifier) {
+        alert("Please enter a refinement modifier (e.g. 'on race track', 'at sunset')");
+        return;
+      }
+
+      closeLightbox();
+      renderLoading(`Composing [${baseFilename}] + "${escapeHtml(textModifier)}"...`);
+
+      const formData = new FormData();
+      formData.append('base_filename', baseFilename);
+      formData.append('text_modifier', textModifier);
+      formData.append('top_k', currentResultCount);
+
+      try {
+        const res = await fetch(`${API_BASE}/search-composed`, {
+          method: 'POST',
+          body: formData
+        });
+        if (!res.ok) throw new Error("Modal composed search failed");
+        const data = await res.json();
+        currentResults = data.results || [];
+        renderImageGallery(currentResults, `[${baseFilename}] + "${textModifier}"`, data.latency_ms);
+      } catch (err) {
+        renderError(`Failed composed search for ${baseFilename}`);
+      }
+    }
+
+    function copyCaptionToClipboard() {
+      if (!activeModalItem || !activeModalItem.caption) return;
+      navigator.clipboard.writeText(activeModalItem.caption);
+      alert("Caption copied to clipboard!");
+    }
+
+    // Stats & Health Modal
+    async function openStatsModal() {
+      document.getElementById('statsModal').classList.add('open');
+      try {
+        const res = await fetch(`${API_BASE}/stats`);
+        const data = await res.json();
+        document.getElementById('statTotalImages').innerText = data.total_images;
+        document.getElementById('statDim').innerText = `${data.embedding_dimension}D`;
+        document.getElementById('statLatency').innerText = data.avg_search_latency_ms ? `${data.avg_search_latency_ms} ms` : '—';
+        document.getElementById('statDevice').innerText = data.device.toUpperCase();
+
+        const topKws = (data.top_keywords || []).map(k => `<span class="tag" style="margin:2px;">${k.word} (${k.count})</span>`).join('');
+        document.getElementById('statsTopKeywords').innerHTML = `<b>Top Extracted Keywords across dataset:</b><br><br>${topKws}`;
+      } catch (err) {
+        document.getElementById('statsTopKeywords').innerText = "Unable to fetch live statistics from server.";
+      }
+    }
+
+    function closeStatsModal() {
+      document.getElementById('statsModal').classList.remove('open');
+    }
+
+    function closeStatsOnBackdrop(e) {
+      if (e.target.id === 'statsModal') closeStatsModal();
+    }
+
+    // Re-indexing & Multi-Upload
+    async function triggerBuildIndex() {
+      if (!confirm("Start background index rebuild for any new images in images/?")) return;
+      try {
+        const res = await fetch(`${API_BASE}/build-index`, { method: 'POST' });
+        const data = await res.json();
+        alert(data.message);
+      } catch (err) {
+        alert("Failed to trigger re-index.");
+      }
+    }
+
+    async function handleMultiUpload(e) {
+      const files = Array.from(e.target.files);
+      if (!files || files.length === 0) return;
+
+      const formData = new FormData();
+      files.forEach(f => formData.append('files', f));
+
+      renderLoading(`Uploading and indexing ${files.length} image(s)...`);
+
+      try {
+        const res = await fetch(`${API_BASE}/upload`, { method: 'POST', body: formData });
+        const data = await res.json();
+        alert(data.message || `Uploaded ${data.uploaded.length} image(s).`);
+        executeTextSearch();
+      } catch (err) {
+        alert("Upload failed.");
+      }
+    }
+
+    async function checkHealthStatus() {
+      try {
+        const res = await fetch(`${API_BASE}/health`);
+        const data = await res.json();
+        if (data.status === 'ok') {
+          document.getElementById('liveStatusPill').innerText = `${data.total_images} Photos Indexed · FAISS HNSW (${data.device.toUpperCase()})`;
+        }
+      } catch (e) {
+        document.getElementById('liveStatusPill').innerText = 'Offline (Click Search to Connect)';
+      }
+    }
+
+    function resetToHome() {
+      document.getElementById('queryInput').value = '';
+      clearImageQuery();
+      setSearchMode('text');
+      quickSearch('a red car');
+    }
+
+    // Keyboard navigation
+    document.getElementById('queryInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') executeTextSearch();
+    });
+
+    const negInputEl = document.getElementById('negativeInput');
+    if (negInputEl) {
+      negInputEl.addEventListener('keydown', e => {
+        if (e.key === 'Enter') executeTextSearch();
+      });
+    }
+
+    const imgModEl = document.getElementById('imageModifierInput');
+    if (imgModEl) {
+      imgModEl.addEventListener('keydown', e => {
+        if (e.key === 'Enter') executeImageSearch();
+      });
+    }
+
+    const modalModEl = document.getElementById('modalModifierInput');
+    if (modalModEl) {
+      modalModEl.addEventListener('keydown', e => {
+        if (e.key === 'Enter') runComposedSearchFromModal();
+      });
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        closeLightbox();
+        closeStatsModal();
+      }
+    });
+
+    // Boot
+    initTheme();
+    checkHealthStatus();
+    // Pre-populate with first search
+    setTimeout(() => {
+      quickSearch('a red car');
+    }, 400);
+  </script>
 </body>
 </html>

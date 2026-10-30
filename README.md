@@ -107,39 +107,81 @@ Open `index.html` in a browser (the backend runs at `http://127.0.0.1:8000`).
 ## Project structure
 
 ```
-app.py                  FastAPI backend — search, upload, indexing, stats (main entry point)
-build_index.py          One-time / batch CLIP embedding generation
-generate_captions.py    BLIP caption generation for the dataset
-extract_keywords.py     Keyword extraction from captions
-hybrid_search.py        Standalone hybrid search logic (used during development)
-auto_eval.py            Automated precision evaluation (generates the numbers below)
-index.html              Frontend (search UI, upload, stats, about)
+core/
+├── config.py           Centralized configuration, paths, constants, device selection
+├── models.py           Singleton model loader for CLIP and BLIP with device abstraction
+├── search_engine.py    FAISS HNSW index management, BM25 scoring, synonym expansion, find_similar
+└── indexer.py          Batched CLIP embedding, BLIP captioning, thumbnail generator, atomic persistence
 
-search.py               Early standalone brute-force search script (exploration)
-search_faiss.py         Early standalone FAISS search script (exploration)
-test_clip.py            Script used to verify CLIP model loading during development
-test_blip.py            Script used to verify BLIP model loading during development
-test_image_embedding.py Script used to verify image embedding generation during development
-create_eval_set.py      Interactive helper used to build the manual portion of the eval set
-compute_metrics.py      Precision/recall calculation from eval_set.json
-eval_set.json           Saved evaluation queries and candidate/relevant results
+app.py                  FastAPI backend with non-blocking threadpool delegation (main entry point)
+index.html              Redesigned modern glassmorphism frontend (served directly at /)
+requirements.txt        Pinned dependencies for clean setup
 
-images/                 Image dataset (not committed — see .gitignore)
-thumbnails/             Generated thumbnails (not committed)
-embeddings.npy          CLIP embeddings for indexed images (not committed)
-filenames.npy           Filenames aligned with embeddings.npy (not committed)
-captions.json           BLIP captions per image (not committed)
-keywords.json           Extracted keywords per image (not committed)
+images/                 Image dataset (curated sample images included)
+thumbnails/             Generated high-resolution thumbnails
+embeddings.npy          Normalized CLIP embeddings (512-dim)
+filenames.npy           Filenames aligned with embeddings
+captions.json           BLIP captions per image
+keywords.json           Extracted keywords per image
+
+build_index.py          One-time batch indexing script
+generate_captions.py    BLIP caption generation script
+extract_keywords.py     Keyword extraction script
+hybrid_search.py        Standalone hybrid search logic
+auto_eval.py            Automated precision evaluation
+compute_metrics.py      Precision/recall calculation
+eval_set.json           Evaluation queries and candidates
 ```
 
-The `search.py` / `search_faiss.py` / `test_*.py` scripts were used while building the system incrementally (verifying CLIP, then FAISS, then BLIP, one piece at a time) and are kept for reference — `app.py` is the actual served application and is the only file that needs to run.
+## Running the Application
 
-## Known limitations
+1. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-- Search runs on CPU; a GPU would reduce embedding/captioning latency further.
-- The evaluation set is small (10 queries) and uses an automated keyword-based proxy rather than fully manual relevance judgments — see [Evaluation](#evaluation) for why this matters.
-- Background indexing runs as a single in-process task; a production system would use a proper task queue (e.g. Celery) instead of FastAPI's `BackgroundTasks`.
+2. **Start the server:**
+   ```bash
+   python -m uvicorn app:app --host 127.0.0.1 --port 8000
+   ```
+
+3. **Open in browser:**
+   Open `http://127.0.0.1:8000` in any web browser to access the full search engine.
+
+## New Features & Interview Highlights
+
+### 1. 🌟 Composed Multimodal Retrieval (Image + Text Refinement)
+Goes beyond standard single-vector retrieval by performing vector arithmetic directly in the CLIP latent space:
+$$\vec{v}_{\text{composed}} = \text{normalize}\left(\alpha \cdot \vec{v}_{\text{img}} + (1 - \alpha) \cdot \vec{v}_{\text{modifier}}\right)$$
+- **Use Case**: An image of a red car can be modified by typing `"on race track"` or `"in rain"`, immediately retrieving the racing version of the car.
+- **Available via**:
+  - Image search preview with the `✨ Refine` input box
+  - Lightbox modal with one-click composed refinement search
+  - Dedicated endpoint: `POST /search-composed`
+
+### 2. 🚫 Negative Prompting & Vector Subtraction (Search with Exclusion)
+Allows users to exclude specific colors, objects, or concepts from visual and semantic search:
+$$\vec{v}_{\text{query}} = \text{normalize}\left(\vec{v}_{\text{pos}} - \lambda \cdot \vec{v}_{\text{neg}}\right)$$
+- Accompanied by negative keyword penalties to eliminate unwanted concepts.
+- **User Interface**: Dedicated `- Exclude:` input bar with real-time tag badge and inline syntax support (`cars --without red`, `dog --not grass`).
+- **Endpoint**: `GET /search?query=car&negative_query=red`
+
+### 3. 🎯 Smart Relevance Guard (Zero Random / Irrelevant Images)
+- Standard nearest-neighbor searches always return $K$ images, even when the query has zero semantic connection (returning noisy nearest neighbors with scores around $0.18 - 0.22$).
+- Lens implements a **Smart Relevance Guard**: candidates with zero BM25 keyword overlap must achieve a strict cosine similarity threshold ($\ge 0.258$). Queries with no relevant match cleanly display an explanation card with curated explore suggestion chips instead of deceptive random photos.
+
+### 4. 🎛️ Minimalist Stepper Count Control
+- Replaced clunky dropdown menus with an aesthetic `−` / `+` stepper counter directly inside the search bar, with instant keyboard and click feedback.
+
+### 5. ⚡ Architecture & Performance Improvements
+- **Instant "Find Similar" Discovery**: Click the Lens icon on any image card to immediately retrieve visually similar photos without re-uploading.
+- **BM25 Reranking & Synonym Expansion**: Replaces naive keyword set-overlap with Okapi BM25 and concept synonym expansion (`person` $\to$ `man`, `woman`, `people`), eliminating false zero scores.
+- **Interactive Lightbox Modal**: View full-size images, complete BLIP captions, keyword chips, and granular CLIP vs BM25 score meters.
+- **Non-Blocking Architecture**: Synchronous PyTorch and FAISS operations run on threadpools via `run_in_threadpool`, ensuring FastAPI's asyncio event loop is never blocked.
+- **Atomic File Persistence**: Saves indexes and metadata via atomic temporary file renaming to prevent file corruption during writes.
+- **Device-Aware Hardware Detection**: Auto-detects and utilizes CUDA/GPU acceleration when available, with graceful CPU fallback.
 
 ## License
 
-MIT (or update to match your preference before publishing).
+MIT
+

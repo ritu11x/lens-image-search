@@ -8,7 +8,7 @@ os.environ["TRANSFORMERS_OFFLINE"] = "0"
 print("BLIP model download ho raha hai... thoda time lagega pehli baar")
 blip_processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
 blip_model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
-print("BLIP model load ho gaya! ✅")
+print("BLIP model load ho gaya! [OK]")
 
 # Ek image test kar
 image_path = os.path.join("images", os.listdir("images")[0])

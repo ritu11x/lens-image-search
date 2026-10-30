@@ -24,7 +24,7 @@ faiss.normalize_L2(embeddings)
 index = faiss.IndexHNSWFlat(embedding_dim, 32)
 index.add(embeddings)
 index.hnsw.efSearch = 64
-print("Model load ho gaya! ✅\n")
+print("Model load ho gaya! [OK]\n")
 
 STOPWORDS = {
     "a", "an", "the", "is", "are", "was", "were", "be", "been", "being",
@@ -37,6 +37,7 @@ STOPWORDS = {
 
 
 def search(query_text, top_k=10):
+    k = min(top_k, index.ntotal)
     text_inputs = processor(text=[query_text], return_tensors="pt", padding=True)
     with torch.no_grad():
         query_embedding = model.get_text_features(**text_inputs)
@@ -44,7 +45,7 @@ def search(query_text, top_k=10):
         query_embedding = query_embedding.pooler_output if hasattr(query_embedding, 'pooler_output') else query_embedding[0]
     query_embedding = query_embedding.squeeze().numpy().astype('float32').reshape(1, -1)
     faiss.normalize_L2(query_embedding)
-    distances, indices = index.search(query_embedding, top_k)
+    distances, indices = index.search(query_embedding, k)
     return [str(filenames[idx]) for idx in indices[0]]
 
 
@@ -74,7 +75,7 @@ for query in EVAL_QUERIES:
     p5_scores.append(p5)
     p10_scores.append(p10)
 
-    print(f"'{query}' → relevant: {len(relevant)}/10, P@5: {p5:.2f}, P@10: {p10:.2f}")
+    print(f"'{query}' -> relevant: {len(relevant)}/10, P@5: {p5:.2f}, P@10: {p10:.2f}")
 
 with open("eval_set.json", "w") as f:
     json.dump(eval_set, f, indent=2)

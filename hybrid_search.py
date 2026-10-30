@@ -12,7 +12,7 @@ os.environ["TRANSFORMERS_OFFLINE"] = "1"
 print("Model load ho raha hai...")
 model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
 processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
-print("Model load ho gaya! ✅")
+print("Model load ho gaya! [OK]")
 
 # Saara data load kar
 embeddings = np.load("embeddings.npy").astype('float32')

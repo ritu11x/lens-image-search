@@ -9,7 +9,7 @@ os.environ["TRANSFORMERS_OFFLINE"] = "1"
 print("BLIP model load ho raha hai...")
 blip_processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
 blip_model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
-print("BLIP model load ho gaya! ✅")
+print("BLIP model load ho gaya! [OK]")
 
 image_folder = "images"
 image_files = sorted(os.listdir(image_folder))
@@ -33,4 +33,4 @@ for i, filename in enumerate(image_files):
 with open("captions.json", "w") as f:
     json.dump(captions, f, indent=2)
 
-print(f"\n✅ Sab captions save ho gaye! Total: {len(captions)}")
+print(f"\n[OK] Sab captions save ho gaye! Total: {len(captions)}")
