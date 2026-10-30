@@ -308,3 +308,29 @@ def trigger_build_index(background_tasks: BackgroundTasks):
 @app.get("/build-status")
 def get_build_status():
     return indexer.get_status()
+
+
+@app.post("/privacy/clear-uploads")
+async def clear_user_uploads():
+    """Privacy feature: permanently deletes any user uploaded photos and resets to base sample set."""
+    res = await run_in_threadpool(indexer.reset_and_rebuild_base_index)
+    return res
+
+
+@app.get("/privacy/info")
+def privacy_info():
+    """Returns local-first and zero-cloud privacy architecture metadata."""
+    return {
+        "architecture": "100% Local-First & In-Memory",
+        "external_api_calls": False,
+        "external_data_storage": False,
+        "query_image_storage": "None (Processed strictly in-memory via io.BytesIO and discarded)",
+        "telemetry_and_tracking": False,
+        "user_data_sovereignty": "Full local ownership with 1-click privacy scrub"
+    }
+
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 7860 if os.environ.get("SPACE_ID") else 8000))
+    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=False)

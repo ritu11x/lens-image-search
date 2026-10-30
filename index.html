@@ -1229,6 +1229,75 @@
       color: var(--text-muted);
     }
 
+    /* Privacy & Security Guarantee */
+    .btn-privacy {
+      border-color: rgba(34, 197, 94, 0.4) !important;
+      background: rgba(34, 197, 94, 0.08) !important;
+      color: #4ADE80 !important;
+    }
+
+    .btn-privacy:hover {
+      background: rgba(34, 197, 94, 0.16) !important;
+      border-color: #22C55E !important;
+      box-shadow: 0 0 12px rgba(34, 197, 94, 0.25) !important;
+    }
+
+    .privacy-cards-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    .privacy-card {
+      background: var(--surface-raised);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      transition: all 0.2s ease;
+    }
+
+    .privacy-card:hover {
+      border-color: rgba(34, 197, 94, 0.4);
+      background: rgba(34, 197, 94, 0.04);
+    }
+
+    .privacy-card-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .privacy-card-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .btn-privacy-wipe {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #F87171;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 12.5px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-privacy-wipe:hover {
+      background: #EF4444;
+      color: #0A0F14;
+      border-color: #EF4444;
+      transform: scale(1.02);
+    }
+
     @keyframes fadeIn {
       from { opacity: 0; }
       to { opacity: 1; }
@@ -1259,6 +1328,10 @@
       </div>
 
       <div class="nav-actions">
+        <button class="btn-nav btn-privacy" onclick="openPrivacyModal()" title="100% Device-Only Privacy Guarantee">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Privacy Protected
+        </button>
         <button class="btn-nav" onclick="triggerBuildIndex()">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
           Re-Index
@@ -1501,6 +1574,45 @@
     </div>
   </div>
 
+  <!-- Privacy & Security Modal -->
+  <div class="modal-overlay" id="privacyModal" onclick="closePrivacyOnBackdrop(event)">
+    <div class="info-modal" style="max-width:580px;">
+      <button class="modal-close-btn" onclick="closePrivacyModal()">✕</button>
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+        <span style="font-size:24px;">🛡️</span>
+        <h2 class="info-modal-title" style="margin:0; font-size:24px;">100% Device-Only Privacy Guarantee</h2>
+      </div>
+      <div style="font-size:13.5px; color:var(--text); line-height:1.6; margin-bottom:12px;">
+        Your personal photos and search queries are completely private and remain strictly on your own device.
+      </div>
+      <div class="privacy-cards-grid">
+        <div class="privacy-card">
+          <div class="privacy-card-title">💻 Local-First AI Execution</div>
+          <div class="privacy-card-desc">All CLIP visual embeddings and BLIP captions are computed locally on your device's CPU/GPU. No images or text queries are ever sent to third-party cloud APIs.</div>
+        </div>
+        <div class="privacy-card">
+          <div class="privacy-card-title">🧠 In-Memory Image Search</div>
+          <div class="privacy-card-desc">Reverse image search queries are analyzed directly in temporary RAM buffers and instantly discarded. They are never written to disk or logged.</div>
+        </div>
+        <div class="privacy-card">
+          <div class="privacy-card-title">🚫 Zero Telemetry & Tracking</div>
+          <div class="privacy-card-desc">Lens contains no tracking pixels, no advertising cookies, and no analytics beacons. Your search history never leaves this page.</div>
+        </div>
+        <div class="privacy-card">
+          <div class="privacy-card-title">🗑️ 1-Click Privacy Scrub</div>
+          <div class="privacy-card-desc">Wipe all your uploaded photos and cached embeddings with a single click, instantly resetting to the clean sample demonstration dataset.</div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <span style="font-size:12px; color:var(--text-faint);">Need to scrub your uploaded data?</span>
+        <button class="btn-privacy-wipe" onclick="triggerPrivacyScrub()">
+          🗑️ Wipe My Uploads & Clear Cache
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Stats Modal -->
   <div class="modal-overlay" id="statsModal" onclick="closeStatsOnBackdrop(event)">
     <div class="info-modal">
@@ -1519,7 +1631,8 @@
   </div>
 
   <script>
-    const API_BASE = "http://127.0.0.1:8000";
+    // Dynamically resolve API origin for both local and cloud deployment (e.g. Hugging Face Spaces)
+    const API_BASE = (window.location.origin && window.location.origin !== "null") ? window.location.origin : "http://127.0.0.1:8000";
     let searchMode = 'text';
     let currentResults = [];
     let activeModalItem = null;
@@ -2116,10 +2229,39 @@
       });
     }
 
+    // Privacy Modal Controls
+    function openPrivacyModal() {
+      document.getElementById('privacyModal').classList.add('open');
+    }
+
+    function closePrivacyModal() {
+      document.getElementById('privacyModal').classList.remove('open');
+    }
+
+    function closePrivacyOnBackdrop(e) {
+      if (e.target.id === 'privacyModal') closePrivacyModal();
+    }
+
+    async function triggerPrivacyScrub() {
+      if (!confirm("Are you sure? This will permanently delete all your uploaded photos and cached data, resetting the dataset to the base demo samples.")) return;
+      closePrivacyModal();
+      renderLoading("Scrubbing private user photos and resetting index...");
+      try {
+        const res = await fetch(`${API_BASE}/privacy/clear-uploads`, { method: 'POST' });
+        const data = await res.json();
+        alert(data.message || `Scrubbed ${data.deleted_count || 0} uploaded image(s).`);
+        checkHealthStatus();
+        quickSearch('a red car');
+      } catch (err) {
+        renderError("Could not complete privacy wipe.");
+      }
+    }
+
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') {
         closeLightbox();
         closeStatsModal();
+        closePrivacyModal();
       }
     });
 

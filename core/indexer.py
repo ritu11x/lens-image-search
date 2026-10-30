@@ -205,5 +205,66 @@ class Indexer:
 
         return self.index_files(unindexed)
 
+    def reset_and_rebuild_base_index(self) -> Dict[str, Any]:
+        """Privacy feature: scrubs all user uploads, leaves only BASE_SAMPLE_IMAGES, and rebuilds index."""
+        from core.config import BASE_SAMPLE_IMAGES
+        with self.lock:
+            self.status = {
+                "status": "running",
+                "processed": 0,
+                "total": 0,
+                "message": "Scrubbing user uploaded photos and wiping privacy cache...",
+                "start_time": time.time()
+            }
+
+        deleted_files = []
+        for f in IMAGES_DIR.glob("*"):
+            if f.is_file() and f.name not in BASE_SAMPLE_IMAGES:
+                try:
+                    f.unlink(missing_ok=True)
+                    thumb = THUMBNAILS_DIR / f.name
+                    thumb.unlink(missing_ok=True)
+                    deleted_files.append(f.name)
+                except Exception as err:
+                    logger.warning(f"Could not delete {f.name}: {err}")
+
+        # Filter in-memory and disk structures to only BASE_SAMPLE_IMAGES
+        try:
+            cur_names = search_engine.filenames.tolist() if len(search_engine.filenames) > 0 else []
+            keep_indices = [i for i, name in enumerate(cur_names) if name in BASE_SAMPLE_IMAGES]
+
+            if keep_indices:
+                filtered_emb = search_engine.embeddings[keep_indices]
+                filtered_names = np.array([cur_names[i] for i in keep_indices])
+            else:
+                filtered_emb = np.empty((0, 512), dtype='float32')
+                filtered_names = np.array([])
+
+            filtered_caps = {k: v for k, v in search_engine.captions.items() if k in BASE_SAMPLE_IMAGES}
+            filtered_kws = {k: v for k, v in search_engine.keywords.items() if k in BASE_SAMPLE_IMAGES}
+
+            self.save_atomic(filtered_emb, filtered_names, filtered_caps, filtered_kws)
+            search_engine.load_index()
+
+            with self.lock:
+                self.status = {
+                    "status": "done",
+                    "processed": len(deleted_files),
+                    "total": len(deleted_files),
+                    "message": f"Privacy wipe complete: Permanently removed {len(deleted_files)} file(s).",
+                    "start_time": None
+                }
+
+            return {
+                "success": True,
+                "deleted_count": len(deleted_files),
+                "deleted_files": deleted_files,
+                "total_remaining": search_engine.index.ntotal if search_engine.index else 0
+            }
+        except Exception as e:
+            logger.exception("Error during privacy scrub")
+            return {"success": False, "error": str(e)}
+
 
 indexer = Indexer()
+

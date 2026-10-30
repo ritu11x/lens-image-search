@@ -28,6 +28,16 @@ DEFAULT_CLIP_WEIGHT = 0.8
 DEFAULT_KEYWORD_WEIGHT = 0.2
 DEFAULT_CANDIDATE_POOL = 50
 
+# Base curated sample images that belong to the core demonstration set
+BASE_SAMPLE_IMAGES = {
+    "breakfast_table.jpg", "city_night.jpg", "coffee_food_table.jpg",
+    "flower_macro.jpg", "golden_retriever_dog.jpg", "mountain_lake.jpg",
+    "person_by_water.jpg", "person_smiling.jpg", "red_sports_car.jpg",
+    "red_sports_car_track.jpg", "tech_laptop.jpg", "blue_sports_car.jpg",
+    "white_sports_car.jpg"
+}
+
 # Ensure directories exist
 IMAGES_DIR.mkdir(parents=True, exist_ok=True)
 THUMBNAILS_DIR.mkdir(parents=True, exist_ok=True)
+

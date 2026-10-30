@@ -1,4 +1,15 @@
+---
+title: Lens - Hybrid Semantic Image Search
+emoji: 🔍
+colorFrom: yellow
+colorTo: amber
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # Lens — Hybrid Semantic Image Search
+
 
 A local, offline-first image search engine that combines **CLIP** visual embeddings, **BLIP**-generated captions, and **FAISS HNSW** indexing to search a personal image collection using natural language — or by uploading an image to find visually similar ones.
 
@@ -181,7 +192,33 @@ $$\vec{v}_{\text{query}} = \text{normalize}\left(\vec{v}_{\text{pos}} - \lambda 
 - **Atomic File Persistence**: Saves indexes and metadata via atomic temporary file renaming to prevent file corruption during writes.
 - **Device-Aware Hardware Detection**: Auto-detects and utilizes CUDA/GPU acceleration when available, with graceful CPU fallback.
 
+## 🔒 Privacy & Data Sovereignty Guarantee
+
+Lens is built with a **100% Local-First & Zero-Cloud Leak** philosophy:
+1. **Local-First AI Execution**: All CLIP vision embeddings and BLIP captions execute entirely on the local CPU/GPU. No images, captions, or search queries are sent to external cloud APIs (e.g., Google Vision, AWS Rekognition, OpenAI cloud).
+2. **In-Memory Query Analysis**: Reverse image search queries are loaded into temporary memory buffers (`io.BytesIO`) and discarded immediately after feature extraction. They are never written to disk or logged.
+3. **Zero Telemetry**: No third-party tracking pixels, analytics beacons, or advertising cookies are embedded.
+4. **1-Click Privacy Scrub**: Users can permanently wipe all uploaded photos and cached embeddings with one click via the UI's **Privacy Protected** modal (`POST /privacy/clear-uploads`), resetting the environment to the clean sample collection.
+
+## 🚀 Deploying to Hugging Face Spaces (Free & AI-Ready)
+
+Lens is pre-configured for one-click deployment on **Hugging Face Spaces**:
+
+1. Create a free account on [huggingface.co](https://huggingface.co).
+2. Go to **Spaces** $\to$ click **"Create new Space"**:
+   - **Space Name**: `lens-image-search`
+   - **License**: `MIT`
+   - **SDK**: Select **Docker** (Blank)
+   - **Hardware**: Free (2 vCPU · 16GB RAM)
+3. Push this repository to your Space repository:
+   ```bash
+   git remote add space https://huggingface.co/spaces/<your-username>/lens-image-search
+   git push space main
+   ```
+4. Hugging Face Spaces will automatically read `Dockerfile` and `README.md` metadata, install dependencies, and launch Lens on port `7860` with a permanent public HTTPS URL.
+
 ## License
 
 MIT
+
 
