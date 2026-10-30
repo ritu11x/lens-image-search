@@ -38,11 +38,16 @@ class ModelManager:
 
     def load_blip(self):
         if self.blip_model is None:
-            logger.info(f"Loading BLIP model '{BLIP_MODEL_NAME}' on {self.device}...")
-            self.blip_processor = BlipProcessor.from_pretrained(BLIP_MODEL_NAME)
-            self.blip_model = BlipForConditionalGeneration.from_pretrained(BLIP_MODEL_NAME).to(self.device)
-            self.blip_model.eval()
-            logger.info("BLIP loaded successfully.")
+            try:
+                logger.info(f"Loading BLIP model '{BLIP_MODEL_NAME}' on {self.device}...")
+                self.blip_processor = BlipProcessor.from_pretrained(BLIP_MODEL_NAME)
+                self.blip_model = BlipForConditionalGeneration.from_pretrained(BLIP_MODEL_NAME).to(self.device)
+                self.blip_model.eval()
+                logger.info("BLIP loaded successfully.")
+            except Exception as e:
+                logger.warning(f"Could not load BLIP model (insufficient RAM): {e}")
+                self.blip_model = None
+                self.blip_processor = None
         return self.blip_model, self.blip_processor
 
     def get_text_embedding(self, text: str) -> torch.Tensor:
@@ -64,12 +69,18 @@ class ModelManager:
         return features.cpu()
 
     def generate_caption(self, image: Image.Image, max_new_tokens: int = 35) -> str:
-        self.load_blip()
-        inputs = self.blip_processor(image, return_tensors="pt").to(self.device)
-        with torch.no_grad():
-            output = self.blip_model.generate(**inputs, max_new_tokens=max_new_tokens)
-        caption = self.blip_processor.decode(output[0], skip_special_tokens=True)
-        return caption.strip()
+        try:
+            model, proc = self.load_blip()
+            if model is None or proc is None:
+                return "a photo"
+            inputs = proc(image, return_tensors="pt").to(self.device)
+            with torch.no_grad():
+                output = model.generate(**inputs, max_new_tokens=max_new_tokens)
+            caption = proc.decode(output[0], skip_special_tokens=True)
+            return caption.strip()
+        except Exception as e:
+            logger.warning(f"BLIP captioning skipped due to memory limits: {e}")
+            return "a photo"
 
 
 model_manager = ModelManager()

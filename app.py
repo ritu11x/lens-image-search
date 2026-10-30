@@ -278,14 +278,23 @@ async def upload_images(files: List[UploadFile] = File(...)):
             skipped.append(f.filename)
 
     if saved_filenames:
-        # Run indexing in threadpool
-        res = await run_in_threadpool(indexer.index_files, saved_filenames)
-        return {
-            "uploaded": saved_filenames,
-            "skipped": skipped,
-            "total_images_now": search_engine.index.ntotal if search_engine.index else 0,
-            "message": f"Successfully indexed {len(saved_filenames)} image(s)."
-        }
+        import gc
+        gc.collect()
+        try:
+            res = await run_in_threadpool(indexer.index_files, saved_filenames)
+            gc.collect()
+            return {
+                "uploaded": saved_filenames,
+                "skipped": skipped,
+                "total_images_now": search_engine.index.ntotal if search_engine.index else 0,
+                "message": f"Successfully indexed {len(saved_filenames)} image(s)."
+            }
+        except Exception as e:
+            gc.collect()
+            return JSONResponse(
+                status_code=500,
+                content={"message": f"Server memory limit: {str(e)}", "uploaded": saved_filenames, "skipped": skipped}
+            )
 
     return {
         "uploaded": [],

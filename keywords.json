@@ -1,0 +1,93 @@
+{
+  "breakfast_table.jpg": [
+    "table",
+    "plate",
+    "food",
+    "cup",
+    "coffee"
+  ],
+  "city_night.jpg": [
+    "city",
+    "street",
+    "cars",
+    "buildings",
+    "night"
+  ],
+  "coffee_food_table.jpg": [
+    "two",
+    "people",
+    "toasting",
+    "coffees",
+    "cafe"
+  ],
+  "flower_macro.jpg": [
+    "plane",
+    "flying",
+    "sky"
+  ],
+  "golden_retriever_dog.jpg": [
+    "golden",
+    "retrieve",
+    "dog",
+    "sitting",
+    "grass"
+  ],
+  "mountain_lake.jpg": [
+    "view",
+    "top",
+    "mountain",
+    "distance",
+    "valley"
+  ],
+  "person_by_water.jpg": [
+    "beach",
+    "waves",
+    "palm",
+    "trees",
+    "sunset"
+  ],
+  "person_smiling.jpg": [
+    "woman",
+    "smiling",
+    "wearing",
+    "red",
+    "top"
+  ],
+  "red_sports_car.jpg": [
+    "red",
+    "sports",
+    "car",
+    "parked",
+    "street"
+  ],
+  "red_sports_car_track.jpg": [
+    "red",
+    "sports",
+    "car",
+    "speeding",
+    "race",
+    "track"
+  ],
+  "tech_laptop.jpg": [
+    "laptop",
+    "desk",
+    "monitor",
+    "mouse"
+  ],
+  "blue_sports_car.jpg": [
+    "chevrolet",
+    "camaro",
+    "supercharged",
+    "sports",
+    "car"
+  ],
+  "white_sports_car.jpg": [
+    "audi",
+    "new",
+    "trd",
+    "concept",
+    "bit",
+    "worth",
+    "machine"
+  ]
+}
