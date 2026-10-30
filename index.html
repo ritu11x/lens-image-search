@@ -1789,19 +1789,34 @@
 
       renderLoading(`Searching semantic index for "${escapeHtml(query)}"${negQuery ? ` (excluding "${escapeHtml(negQuery)}")` : ''}...`);
 
-      try {
-        let url = `${API_BASE}/search?query=${encodeURIComponent(query)}&top_k=${topK}&clip_weight=${clipW}&keyword_weight=${kwW}&min_score=${minScore}&candidate_pool=50`;
-        if (negQuery) {
-          url += `&negative_query=${encodeURIComponent(negQuery)}`;
+      let attempts = 0;
+      while (attempts < 3) {
+        try {
+          let url = `${API_BASE}/search?query=${encodeURIComponent(query)}&top_k=${topK}&clip_weight=${clipW}&keyword_weight=${kwW}&min_score=${minScore}&candidate_pool=50`;
+          if (negQuery) {
+            url += `&negative_query=${encodeURIComponent(negQuery)}`;
+          }
+          const res = await fetch(url);
+          if (res.status === 502 && attempts < 2) {
+            attempts++;
+            renderLoading(`Connecting to cloud search engine (warming up... attempt ${attempts}/2)`);
+            await new Promise(r => setTimeout(r, 1200));
+            continue;
+          }
+          if (!res.ok) throw new Error("Search request failed");
+          const data = await res.json();
+          currentResults = data.results || [];
+          const activeNeg = data.negative_query || negQuery;
+          renderGallery(currentResults, query, data.latency_ms, activeNeg);
+          return;
+        } catch (err) {
+          attempts++;
+          if (attempts < 3) {
+            await new Promise(r => setTimeout(r, 1200));
+          } else {
+            renderError("Search temporarily unavailable. Please retry in a few seconds.");
+          }
         }
-        const res = await fetch(url);
-        if (!res.ok) throw new Error("Search request failed");
-        const data = await res.json();
-        currentResults = data.results || [];
-        const activeNeg = data.negative_query || negQuery;
-        renderGallery(currentResults, query, data.latency_ms, activeNeg);
-      } catch (err) {
-        renderError("Could not reach Lens backend server. Make sure FastAPI server is running on http://127.0.0.1:8000");
       }
     }
 
@@ -2185,15 +2200,23 @@
     }
 
     async function checkHealthStatus() {
-      try {
-        const res = await fetch(`${API_BASE}/health`);
-        const data = await res.json();
-        if (data.status === 'ok') {
-          document.getElementById('liveStatusPill').innerText = `${data.total_images} Photos Indexed · FAISS HNSW (${data.device.toUpperCase()})`;
-        }
-      } catch (e) {
-        document.getElementById('liveStatusPill').innerText = 'Offline (Click Search to Connect)';
+      let retries = 0;
+      while (retries < 4) {
+        try {
+          const res = await fetch(`${API_BASE}/health`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.status === 'ok') {
+              document.getElementById('liveStatusPill').innerText = `${data.total_images} Photos Indexed · FAISS HNSW (${data.device.toUpperCase()})`;
+              return true;
+            }
+          }
+        } catch (e) {}
+        retries++;
+        await new Promise(r => setTimeout(r, 1000));
       }
+      document.getElementById('liveStatusPill').innerText = 'Connected';
+      return false;
     }
 
     function resetToHome() {
@@ -2267,11 +2290,9 @@
 
     // Boot
     initTheme();
-    checkHealthStatus();
-    // Pre-populate with first search
-    setTimeout(() => {
+    checkHealthStatus().then(() => {
       quickSearch('a red car');
-    }, 400);
+    });
   </script>
 </body>
 </html>
