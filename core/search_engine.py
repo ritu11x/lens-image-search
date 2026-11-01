@@ -25,6 +25,15 @@ STOPWORDS = {
 }
 
 SYNONYMS = {
+    "chair": ["chairs", "seat", "seats", "seating", "stool", "stools", "bench", "furniture", "table", "tables"],
+    "chairs": ["chair", "seats", "seating", "stools", "furniture", "tables", "dining"],
+    "table": ["tables", "desk", "counter", "chair", "chairs", "furniture", "dining", "cafe"],
+    "tables": ["table", "desks", "chairs", "furniture", "dining", "cafe"],
+    "restaurant": ["cafe", "diner", "bistro", "dining", "eatery", "canteen", "cafeteria", "room", "table", "chair"],
+    "cafe": ["restaurant", "coffee", "bistro", "diner", "cafeteria", "tables", "chairs"],
+    "room": ["indoor", "interior", "hall", "space", "dining", "restaurant"],
+    "wall": ["walls", "tiles", "tiled", "backdrop"],
+    "furniture": ["chair", "chairs", "table", "tables", "seat", "desk"],
     "person": ["man", "woman", "boy", "girl", "people", "guy", "lady", "human", "child"],
     "people": ["person", "men", "women", "crowd", "children"],
     "car": ["automobile", "vehicle", "sedan", "suv", "sports", "coupe"],
@@ -147,7 +156,18 @@ class SearchEngine:
 
     def extract_query_keywords(self, query: str, expand_synonyms: bool = True) -> Set[str]:
         words = re.findall(r'\b[a-z]+\b', query.lower())
-        base_tokens = set(w for w in words if w not in STOPWORDS and len(w) > 2)
+        base_tokens = set()
+        for w in words:
+            if w in STOPWORDS or len(w) <= 2:
+                continue
+            base_tokens.add(w)
+            # Automatic singular / plural stemming
+            if w.endswith('ies') and len(w) > 4:
+                base_tokens.add(w[:-3] + 'y')
+            elif w.endswith('es') and len(w) > 4:
+                base_tokens.add(w[:-2])
+            elif w.endswith('s') and len(w) > 3 and not w.endswith('ss'):
+                base_tokens.add(w[:-1])
 
         if not expand_synonyms:
             return base_tokens
@@ -239,10 +259,14 @@ class SearchEngine:
                 is_keyword_matched = (bm25_score > 0.05) or (len(overlap) > 0)
                 is_clip_match = clip_sim >= max(0.20, min_score)
 
+                # If no text keyword matched in caption, score is driven by CLIP visual similarity
+                if not is_keyword_matched and is_clip_match:
+                    final_score = max(final_score, clip_sim)
+
                 if bool(query_kws) and not is_keyword_matched and not is_clip_match:
                     continue
 
-                if final_score >= min_score:
+                if (final_score >= min_score) or (clip_sim >= max(0.20, min_score)):
                     scored.append({
                         "filename": fname,
                         "caption": self.captions.get(fname, ""),

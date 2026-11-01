@@ -35,7 +35,7 @@ BASE_SAMPLE_IMAGES = {
     "flower_macro.jpg", "golden_retriever_dog.jpg", "mountain_lake.jpg",
     "person_by_water.jpg", "person_smiling.jpg", "red_sports_car.jpg",
     "red_sports_car_track.jpg", "tech_laptop.jpg", "blue_sports_car.jpg",
-    "white_sports_car.jpg"
+    "white_sports_car.jpg", "cafe_chairs.jpg"
 }
 
 # Ensure directories exist

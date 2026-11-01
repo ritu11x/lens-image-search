@@ -163,7 +163,14 @@ class ModelManager:
         try:
             model, tok = self.load_clip_text_only()
             if model is not None and tok is not None:
-                inputs = tok([text], return_tensors="pt", padding=True, truncation=True).to(self.device)
+                text_clean = text.strip()
+                words = text_clean.split()
+                if len(words) <= 3 and not text_clean.lower().startswith(("a ", "an ", "the ", "photo of")):
+                    query_prompt = f"a photo of {text_clean}"
+                else:
+                    query_prompt = text_clean
+
+                inputs = tok([query_prompt], return_tensors="pt", padding=True, truncation=True).to(self.device)
                 with torch.inference_mode():
                     out = model(**inputs)
                     embeds = out.text_embeds
