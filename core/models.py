@@ -17,15 +17,18 @@ from core.config import (
 logger = logging.getLogger("lens.models")
 
 def is_low_memory_env() -> bool:
-    """Safe-by-default for cloud hosts (Render 512MB). Only runs heavy transformers if HF Spaces (16GB) or explicitly opted in."""
-    # Hugging Face Spaces provides 16GB RAM
-    if os.environ.get("SPACE_ID") or os.environ.get("HF_SPACE"):
-        return False
-    # Explicit opt-in for local machines or dedicated high-RAM servers
-    if os.environ.get("FULL_AI_MODELS", "").lower() == "true":
-        return False
-    # Always use lightweight manifold projection on Render and standard cloud hosts
-    return True
+    """Safe-by-default for cloud hosts (Render 512MB). On local machines or HF Spaces (16GB), runs full CLIP and BLIP models."""
+    if os.environ.get("RENDER") or os.environ.get("RENDER_SERVICE_ID"):
+        return True
+    if os.environ.get("LOW_MEMORY_MODE", "").lower() == "true":
+        return True
+    try:
+        import psutil
+        if psutil.virtual_memory().total < 1800 * 1024 * 1024:
+            return True
+    except Exception:
+        pass
+    return False
 
 IS_LOW_MEMORY_ENV = is_low_memory_env()
 logger.info(f"Low-memory manifold mode active: {IS_LOW_MEMORY_ENV}")
@@ -206,7 +209,7 @@ class ModelManager:
                 if model is not None and proc is not None:
                     inputs = proc(image, return_tensors="pt").to(self.device)
                     with torch.inference_mode():
-                        output = model.generate(**inputs, max_new_tokens=max_new_tokens)
+                        output = model.generate(**inputs, max_new_tokens=min(max_new_tokens, 20), num_beams=1)
                     caption = proc.decode(output[0], skip_special_tokens=True)
                     if caption and len(caption.strip()) > 3:
                         return caption.strip()

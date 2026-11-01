@@ -237,13 +237,12 @@ class SearchEngine:
 
                 # Strict relevance check
                 is_keyword_matched = (bm25_score > 0.05) or (len(overlap) > 0)
-                is_high_clip_match = clip_sim >= 0.258
+                is_clip_match = clip_sim >= max(0.20, min_score)
 
-                if bool(query_kws) and not is_keyword_matched and not is_high_clip_match:
+                if bool(query_kws) and not is_keyword_matched and not is_clip_match:
                     continue
 
-                effective_min = max(min_score, 0.20 if is_keyword_matched else 0.258)
-                if final_score >= effective_min:
+                if final_score >= min_score:
                     scored.append({
                         "filename": fname,
                         "caption": self.captions.get(fname, ""),

@@ -106,6 +106,17 @@ def health():
     }
 
 
+@app.get("/api/image/{name}")
+def serve_image(name: str):
+    """Module 1 (Project Report): Serves full-resolution image when user clicks on a search result."""
+    safe_name = sanitize_filename(name)
+    file_path = IMAGES_DIR / safe_name
+    if not file_path.exists() or not file_path.is_file():
+        raise HTTPException(status_code=404, detail="Image not found.")
+    return FileResponse(file_path)
+
+
+@app.get("/api/stats")
 @app.get("/stats")
 def stats():
     all_kws = []

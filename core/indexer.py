@@ -12,7 +12,7 @@ import numpy as np
 
 from core.config import (
     IMAGES_DIR, THUMBNAILS_DIR,
-    EMBEDDINGS_FILE, FILENAMES_FILE, CAPTIONS_FILE, KEYWORDS_FILE
+    EMBEDDINGS_FILE, FILENAMES_FILE, CAPTIONS_FILE, KEYWORDS_FILE, INDEX_JSON_FILE
 )
 from core.models import model_manager
 from core.search_engine import search_engine, STOPWORDS
@@ -56,7 +56,7 @@ class Indexer:
         try:
             thumb = image.copy()
             thumb.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
-            thumb.save(save_path, quality=90, optimize=True)
+            thumb.save(save_path, quality=85, optimize=False)
         except Exception as e:
             logger.warning(f"Could not generate thumbnail for {save_path}: {e}")
 
@@ -65,6 +65,7 @@ class Indexer:
         temp_names = str(FILENAMES_FILE) + ".tmp.npy"
         temp_caps = str(CAPTIONS_FILE) + ".tmp.json"
         temp_kws = str(KEYWORDS_FILE) + ".tmp.json"
+        temp_idx = str(INDEX_JSON_FILE) + ".tmp.json"
 
         np.save(temp_emb, embeddings)
         np.save(temp_names, filenames)
@@ -73,11 +74,26 @@ class Indexer:
         with open(temp_kws, "w", encoding="utf-8") as f:
             json.dump(keywords, f, indent=2, ensure_ascii=False)
 
+        # Build portable index_with_keywords.json (Project Report Module 2 & 5)
+        index_entries = []
+        for i, fname in enumerate(filenames):
+            fn_str = str(fname)
+            emb_list = embeddings[i].tolist() if i < len(embeddings) else []
+            index_entries.append({
+                "filename": fn_str,
+                "caption": captions.get(fn_str, ""),
+                "keywords": keywords.get(fn_str, []),
+                "embedding": emb_list
+            })
+        with open(temp_idx, "w", encoding="utf-8") as f:
+            json.dump(index_entries, f, indent=2, ensure_ascii=False)
+
         # Atomic replace
         os.replace(temp_emb, str(EMBEDDINGS_FILE))
         os.replace(temp_names, str(FILENAMES_FILE))
         os.replace(temp_caps, str(CAPTIONS_FILE))
         os.replace(temp_kws, str(KEYWORDS_FILE))
+        os.replace(temp_idx, str(INDEX_JSON_FILE))
 
     def index_files(self, new_filenames: List[str], batch_size: int = 8) -> Dict[str, Any]:
         """Indexes specific files or newly discovered files."""
@@ -140,15 +156,33 @@ class Indexer:
                 with self.lock:
                     self.status["processed"] = min(len(new_filenames), i + len(batch_files))
 
-            # Combine and save
+            # Combine and save without duplicate filenames
             if valid_files:
-                new_embs_arr = np.array(new_embeddings_list).astype('float32')
+                existing_names_list = [str(x) for x in existing_names]
+                existing_name_to_idx = {name: idx for idx, name in enumerate(existing_names_list)}
+                
+                new_embs_to_append = []
+                new_names_to_append = []
+                
+                # Make a mutable copy of existing embeddings
                 if len(existing_emb) > 0:
-                    combined_embs = np.vstack([existing_emb, new_embs_arr])
-                    combined_names = np.append(existing_names, valid_files)
+                    combined_embs_list = list(existing_emb)
+                    combined_names_list = list(existing_names_list)
                 else:
-                    combined_embs = new_embs_arr
-                    combined_names = np.array(valid_files)
+                    combined_embs_list = []
+                    combined_names_list = []
+                
+                for emb, fname in zip(new_embeddings_list, valid_files):
+                    if fname in existing_name_to_idx:
+                        idx = existing_name_to_idx[fname]
+                        combined_embs_list[idx] = emb
+                    else:
+                        combined_embs_list.append(emb)
+                        combined_names_list.append(fname)
+                        existing_name_to_idx[fname] = len(combined_names_list) - 1
+
+                combined_embs = np.array(combined_embs_list, dtype='float32') if combined_embs_list else np.empty((0, 512), dtype='float32')
+                combined_names = np.array(combined_names_list, dtype=object)
 
                 self.save_atomic(combined_embs, combined_names, existing_captions, existing_keywords)
                 # Reload search engine with new data

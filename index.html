@@ -1303,6 +1303,79 @@
       to { opacity: 1; }
     }
 
+    /* Non-blocking Toast Notifications */
+    .lens-toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 99999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .lens-toast {
+      background: var(--surface-card);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-md);
+      padding: 12px 18px;
+      color: var(--text);
+      font-size: 13.5px;
+      font-weight: 500;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      pointer-events: auto;
+      transform: translateY(20px);
+      opacity: 0;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      max-width: 400px;
+    }
+
+    .lens-toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .lens-toast.success {
+      border-color: rgba(52, 211, 153, 0.6);
+      box-shadow: 0 8px 24px rgba(52, 211, 153, 0.15);
+    }
+    .lens-toast.error {
+      border-color: rgba(239, 68, 68, 0.6);
+      box-shadow: 0 8px 24px rgba(239, 68, 68, 0.15);
+    }
+    .lens-toast.info {
+      border-color: var(--border-strong);
+      box-shadow: 0 8px 24px var(--accent-glow);
+    }
+
+    .btn-preview-add {
+      background: rgba(232, 163, 61, 0.15);
+      border: 1px solid var(--border-strong);
+      color: var(--accent);
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .btn-preview-add:hover {
+      background: var(--accent);
+      color: #0A0F14;
+      transform: translateY(-1px);
+    }
+
     @media (max-width: 768px) {
       .hero-title { font-size: 34px; }
       .modal-container { grid-template-columns: 1fr; max-height: 85vh; }
@@ -1442,6 +1515,10 @@
 
           <button class="btn-search" id="btnExecuteImageSearch" onclick="executeImageSearch()">
             <span>Find Matches</span>
+          </button>
+          <button class="btn-preview-add" id="btnUploadPreviewImage" onclick="uploadPreviewImageToCollection()" title="Upload and index this photo into your searchable collection">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span>Index & Add Photo</span>
           </button>
           <button class="btn-remove-preview" onclick="clearImageQuery()" title="Clear">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -1736,8 +1813,13 @@
 
     window.addEventListener('drop', e => {
       if (e.dataTransfer && e.dataTransfer.files.length > 0) {
-        setSearchMode('image');
-        handleImageFile(e.dataTransfer.files[0]);
+        if (e.dataTransfer.files.length > 1) {
+          uploadFileList(e.dataTransfer.files);
+        } else if (searchMode === 'image') {
+          handleImageFile(e.dataTransfer.files[0]);
+        } else {
+          uploadFileList(e.dataTransfer.files);
+        }
       }
     });
 
@@ -2071,7 +2153,12 @@
       if (!item) return;
       activeModalItem = item;
 
-      document.getElementById('modalImg').src = `${API_BASE}/images/${item.filename}`;
+      const imgEl = document.getElementById('modalImg');
+      imgEl.src = `${API_BASE}/api/image/${item.filename}`;
+      imgEl.onerror = function() {
+        this.src = `${API_BASE}/images/${item.filename}`;
+      };
+
       document.getElementById('modalFilename').innerText = item.filename;
       document.getElementById('modalCaption').innerText = item.caption || 'No caption available.';
 
@@ -2110,7 +2197,7 @@
       const modInput = document.getElementById('modalModifierInput');
       const textModifier = modInput ? modInput.value.trim() : '';
       if (!textModifier) {
-        alert("Please enter a refinement modifier (e.g. 'on race track', 'at sunset')");
+        showToast("Please enter a refinement modifier (e.g. 'on race track', 'at sunset')", 'error');
         return;
       }
 
@@ -2139,14 +2226,14 @@
     function copyCaptionToClipboard() {
       if (!activeModalItem || !activeModalItem.caption) return;
       navigator.clipboard.writeText(activeModalItem.caption);
-      alert("Caption copied to clipboard!");
+      showToast("Caption copied to clipboard!", "success");
     }
 
     // Stats & Health Modal
     async function openStatsModal() {
       document.getElementById('statsModal').classList.add('open');
       try {
-        const res = await fetch(`${API_BASE}/stats`);
+        const res = await fetch(`${API_BASE}/api/stats`);
         const data = await res.json();
         document.getElementById('statTotalImages').innerText = data.total_images;
         document.getElementById('statDim').innerText = `${data.embedding_dimension}D`;
@@ -2168,35 +2255,145 @@
       if (e.target.id === 'statsModal') closeStatsModal();
     }
 
+    // Toast Notification System (replaces disruptive browser alerts)
+    function showToast(message, type = 'info', duration = 3500) {
+      let container = document.getElementById('toastContainer');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'toastContainer';
+        container.className = 'lens-toast-container';
+        document.body.appendChild(container);
+      }
+
+      const toast = document.createElement('div');
+      toast.className = `lens-toast ${type}`;
+      
+      let icon = 'ℹ️';
+      if (type === 'success') icon = '✅';
+      else if (type === 'error') icon = '⚠️';
+
+      toast.innerHTML = `<span style="font-size:16px;">${icon}</span><span>${escapeHtml(message)}</span>`;
+      container.appendChild(toast);
+
+      requestAnimationFrame(() => {
+        toast.classList.add('show');
+      });
+
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+          if (toast.parentNode) toast.parentNode.removeChild(toast);
+        }, 300);
+      }, duration);
+    }
+
     // Re-indexing & Multi-Upload
     async function triggerBuildIndex() {
       if (!confirm("Start background index rebuild for any new images in images/?")) return;
       try {
+        showToast("Starting background index build...", "info");
         const res = await fetch(`${API_BASE}/build-index`, { method: 'POST' });
         const data = await res.json();
-        alert(data.message);
+        showToast(data.message || "Indexing started in background.", "info");
+        setTimeout(checkHealthStatus, 2500);
       } catch (err) {
-        alert("Failed to trigger re-index.");
+        showToast("Failed to trigger re-index.", "error");
       }
     }
 
     async function handleMultiUpload(e) {
       const files = Array.from(e.target.files);
       if (!files || files.length === 0) return;
+      await uploadFileList(files);
+      // Reset input value so subsequent uploads of identical filenames trigger onchange
+      e.target.value = '';
+    }
+
+    async function uploadFileList(files) {
+      if (!files || files.length === 0) return;
+      const fileArr = Array.from(files);
+
+      renderLoading(`Uploading and indexing ${fileArr.length} photo(s)...`);
+      showToast(`Uploading and indexing ${fileArr.length} photo(s)...`, 'info', 3000);
 
       const formData = new FormData();
-      files.forEach(f => formData.append('files', f));
-
-      renderLoading(`Uploading and indexing ${files.length} image(s)...`);
+      fileArr.forEach(f => formData.append('files', f));
 
       try {
         const res = await fetch(`${API_BASE}/upload`, { method: 'POST', body: formData });
         const data = await res.json();
-        alert(data.message || `Uploaded ${data.uploaded.length} image(s).`);
-        executeTextSearch();
+
+        if (res.ok) {
+          const count = (data.uploaded && data.uploaded.length) || fileArr.length;
+          showToast(`Successfully indexed ${count} photo(s)!`, 'success', 4000);
+          await checkHealthStatus();
+
+          const multiInput = document.getElementById('hiddenMultiUpload');
+          if (multiInput) multiInput.value = '';
+
+          const q = document.getElementById('queryInput').value.trim();
+          if (q) {
+            executeTextSearch();
+          } else {
+            renderNewlyUploadedGallery(data.uploaded || []);
+          }
+        } else {
+          showToast(data.message || 'Upload encountered an issue.', 'error', 4500);
+          const q = document.getElementById('queryInput').value.trim();
+          if (q) executeTextSearch();
+        }
       } catch (err) {
-        alert("Upload failed.");
+        showToast('Upload failed. Please check network connection.', 'error', 4000);
+        const q = document.getElementById('queryInput').value.trim();
+        if (q) executeTextSearch();
       }
+    }
+
+    async function uploadPreviewImageToCollection() {
+      if (!selectedImageFile) return;
+      const file = selectedImageFile;
+      showToast(`Indexing ${file.name} to library...`, 'info', 2500);
+      await uploadFileList([file]);
+      clearImageQuery();
+      setSearchMode('text');
+    }
+
+    function renderNewlyUploadedGallery(uploadedNames) {
+      const summaryEl = document.getElementById('resultsSummary');
+      const telemetryEl = document.getElementById('telemetryTag');
+      const galleryEl = document.getElementById('resultsGallery');
+
+      if (!uploadedNames || uploadedNames.length === 0) {
+        quickSearch('a red car');
+        return;
+      }
+
+      summaryEl.innerHTML = `Successfully added and indexed <b>${uploadedNames.length}</b> new photo(s).`;
+      telemetryEl.innerText = `Newly Indexed · Local AI Pipeline`;
+      telemetryEl.style.display = 'inline-block';
+
+      galleryEl.innerHTML = uploadedNames.map((fname, index) => {
+        return `
+          <div class="card" onclick="findSimilarToExisting('${fname}', event)">
+            <div class="card-rank-badge" style="background:rgba(52, 211, 153, 0.2); color:#34D399; border-color:rgba(52, 211, 153, 0.4);">
+              ✓ Indexed
+            </div>
+            <div class="card-img-wrap">
+              <img class="card-img" src="${API_BASE}/thumbnails/${fname}" alt="${fname}" onerror="this.src='${API_BASE}/api/image/${fname}'">
+              <div class="card-img-overlay">
+                <button class="btn-quick-similar" onclick="findSimilarToExisting('${fname}', event)">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  Find Similar
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="card-caption" style="font-weight:600;">${fname}</div>
+              <div style="font-size:12px; color:var(--emerald); margin-top:4px;">Indexed and ready for natural language search</div>
+            </div>
+          </div>
+        `;
+      }).join('');
     }
 
     async function checkHealthStatus() {
@@ -2272,10 +2469,11 @@
       try {
         const res = await fetch(`${API_BASE}/privacy/clear-uploads`, { method: 'POST' });
         const data = await res.json();
-        alert(data.message || `Scrubbed ${data.deleted_count || 0} uploaded image(s).`);
+        showToast(data.message || `Scrubbed ${data.deleted_count || 0} uploaded image(s).`, 'success');
         checkHealthStatus();
         quickSearch('a red car');
       } catch (err) {
+        showToast("Could not complete privacy wipe.", "error");
         renderError("Could not complete privacy wipe.");
       }
     }
