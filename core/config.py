@@ -12,6 +12,8 @@ FILENAMES_FILE = BASE_DIR / "filenames.npy"
 CAPTIONS_FILE = BASE_DIR / "captions.json"
 KEYWORDS_FILE = BASE_DIR / "keywords.json"
 INDEX_JSON_FILE = BASE_DIR / "index_with_keywords.json"
+VOCAB_EMBEDDINGS_FILE = BASE_DIR / "vocab_embeddings.npy"
+VOCAB_WORDS_FILE = BASE_DIR / "vocab_words.json"
 
 # Auto-detect best available device
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"

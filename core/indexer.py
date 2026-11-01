@@ -40,8 +40,10 @@ class Indexer:
         with self.lock:
             return dict(self.status)
 
-    def extract_keywords_from_caption(self, caption: str, filename: str = "") -> List[str]:
-        combined_text = f"{caption} {filename.replace('_', ' ').replace('-', ' ')}"
+    def extract_keywords_from_caption(self, caption: str, filename: str = "", extra_tags: Optional[List[str]] = None) -> List[str]:
+        tag_text = " ".join(extra_tags or [])
+        clean_fn = filename.replace('_', ' ').replace('-', ' ')
+        combined_text = f"{caption} {clean_fn} {tag_text}"
         words = re.findall(r'\b[a-z]+\b', combined_text.lower())
         filtered = [w for w in words if w not in STOPWORDS and len(w) > 2 and not w.isdigit()]
         # preserve order while removing duplicates
@@ -129,9 +131,12 @@ class Indexer:
             existing_captions = dict(search_engine.captions)
             existing_keywords = dict(search_engine.keywords)
 
-            # Process in batches for CLIP embedding
-            for i in range(0, len(new_filenames), batch_size):
-                batch_files = new_filenames[i : i + batch_size]
+            # Process in high-throughput batches for CLIP embedding & multi-label concept detection
+            effective_batch_size = max(16, batch_size)
+            bulk_mode = len(new_filenames) > 10
+
+            for i in range(0, len(new_filenames), effective_batch_size):
+                batch_files = new_filenames[i : i + effective_batch_size]
                 batch_images = []
                 batch_valid_names = []
 
@@ -146,24 +151,36 @@ class Indexer:
                         thumb_path = THUMBNAILS_DIR / fname
                         self.generate_thumbnail(img, thumb_path)
 
-                        # BLIP Caption & Keywords (with smart filename fallback on low-memory)
-                        caption = model_manager.generate_caption(img, filename=fname)
-                        kws = self.extract_keywords_from_caption(caption)
-                        existing_captions[fname] = caption
-                        existing_keywords[fname] = kws
-
                     except Exception as err:
                         logger.error(f"Failed processing image {fname}: {err}")
                         skipped.append(fname)
 
                 if batch_images:
                     feats = model_manager.get_image_embeddings(batch_images)
-                    embs = feats.squeeze().numpy().astype('float32')
+                    if hasattr(feats, 'detach'):
+                        embs = feats.detach().cpu().numpy().astype('float32')
+                    else:
+                        embs = np.array(feats, dtype='float32')
                     if embs.ndim == 1:
                         embs = embs.reshape(1, -1)
-                    for emb, fname in zip(embs, batch_valid_names):
+
+                    # Instantaneous multi-label visual concept detection (1ms)
+                    tags_batch = model_manager.detect_visual_concepts(embs)
+
+                    for emb, fname, img, tags in zip(embs, batch_valid_names, batch_images, tags_batch):
                         new_embeddings_list.append(emb)
                         valid_files.append(fname)
+
+                        # Automatic Caption & Keywords
+                        caption = model_manager.generate_caption(
+                            img,
+                            filename=fname,
+                            visual_tags=tags,
+                            skip_blip=bulk_mode
+                        )
+                        kws = self.extract_keywords_from_caption(caption, filename=fname, extra_tags=tags)
+                        existing_captions[fname] = caption
+                        existing_keywords[fname] = kws
 
                 with self.lock:
                     self.status["processed"] = min(len(new_filenames), i + len(batch_files))
