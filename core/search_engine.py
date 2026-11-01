@@ -259,8 +259,10 @@ class SearchEngine:
                 is_keyword_matched = (bm25_score > 0.05) or (len(overlap) > 0)
                 is_clip_match = clip_sim >= max(0.20, min_score)
 
-                # If no text keyword matched in caption, score is driven by CLIP visual similarity
-                if not is_keyword_matched and is_clip_match:
+                # Keyword-matched photos receive additive boost over visual similarity
+                if is_keyword_matched:
+                    final_score = max(final_score, clip_sim + (0.20 * bm25_score) + (0.05 * len(overlap)))
+                elif is_clip_match:
                     final_score = max(final_score, clip_sim)
 
                 if bool(query_kws) and not is_keyword_matched and not is_clip_match:

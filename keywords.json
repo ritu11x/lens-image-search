@@ -91,8 +91,18 @@
     "machine"
   ],
   "cafe_chairs.jpg": [
+    "cafe",
+    "dining",
+    "room",
+    "black",
+    "metal",
+    "chairs",
+    "chair",
     "red",
-    "white",
+    "tables",
+    "table",
+    "furniture",
+    "seating",
     "tiled",
     "wall"
   ]

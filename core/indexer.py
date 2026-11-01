@@ -40,9 +40,10 @@ class Indexer:
         with self.lock:
             return dict(self.status)
 
-    def extract_keywords_from_caption(self, caption: str) -> List[str]:
-        words = re.findall(r'\b[a-z]+\b', caption.lower())
-        filtered = [w for w in words if w not in STOPWORDS and len(w) > 2]
+    def extract_keywords_from_caption(self, caption: str, filename: str = "") -> List[str]:
+        combined_text = f"{caption} {filename.replace('_', ' ').replace('-', ' ')}"
+        words = re.findall(r'\b[a-z]+\b', combined_text.lower())
+        filtered = [w for w in words if w not in STOPWORDS and len(w) > 2 and not w.isdigit()]
         # preserve order while removing duplicates
         seen = set()
         result = []
@@ -50,6 +51,17 @@ class Indexer:
             if w not in seen:
                 seen.add(w)
                 result.append(w)
+            # Add singular stem if plural
+            stem = None
+            if w.endswith('ies') and len(w) > 4:
+                stem = w[:-3] + 'y'
+            elif w.endswith('es') and len(w) > 4:
+                stem = w[:-2]
+            elif w.endswith('s') and len(w) > 3 and not w.endswith('ss'):
+                stem = w[:-1]
+            if stem and stem not in seen and len(stem) > 2:
+                seen.add(stem)
+                result.append(stem)
         return result
 
     def generate_thumbnail(self, image: Image.Image, save_path: Path, max_size: int = 400):
